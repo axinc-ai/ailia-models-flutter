@@ -13,8 +13,8 @@ class AudioProcessingWhisper {
   void _intermediateCallback(String text){
   }
 
-  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file) async{
-    _ailiaSpeechModel.create(false, false, ailia_speech_dart.AILIA_ENVIRONMENT_ID_AUTO);
+  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file, int env_id) async{
+    _ailiaSpeechModel.create(false, false, env_id);
     _ailiaSpeechModel.open(onnx_encoder_file, onnx_decoder_file, null, "auto", ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_TINY);
 
     List<double> pcm = List<double>.empty(growable: true);

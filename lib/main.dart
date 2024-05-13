@@ -1,12 +1,16 @@
+import 'package:ailia/ailia_model.dart';
+import 'package:ailia_models_flutter/object_detection/yolox.dart';
 import 'package:flutter/material.dart';
 
 // assets
 import 'package:flutter/services.dart'; //rootBundle
+import 'package:flutter/widgets.dart';
 import 'dart:async'; //Future
 import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia.dart' as ailia_dart;
+import 'package:image/image.dart' as img;
 
 // image
 import 'dart:ui' as ui;
@@ -114,6 +118,9 @@ class _MyHomePageState extends State<MyHomePage> {
     case "multilingual-e5":
       _ailiaNaturalLanguageProcessingMultilingualE5();
       break;
+    case "yolox":
+      _ailiaObjectDetectionYoloX();
+      break;
     }
   }
 
@@ -152,7 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
       downloadModel("https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx", "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
         _displayDownloadEnd();
         AudioProcessingWhisper whisper = AudioProcessingWhisper();
-        String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file);
+        String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
         setState(() {
           predict_result = text;
         });
@@ -184,6 +191,42 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _ailiaObjectDetectionYoloX() async{
+    // Load image
+    ByteData imData = await rootBundle.load("assets/clock.jpg");
+    loadImageFromAssets("assets/clock.jpg").then(
+      (imageAsync) {
+        image = imageAsync;
+        setState(() { // apply to ui (call build)
+          isImageloaded = true;
+        });
+
+        // Download onnx
+        _displayDownloadBegin();
+        downloadModel("https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx", "yolox_s.opt.onnx", (onnx_file) {
+            _displayDownloadEnd();
+            ObjectDetectionYoloX yolox = ObjectDetectionYoloX();
+            yolox.open(onnx_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+
+            final image = img.decodeImage(imData.buffer.asUint8List())!;
+            final width = image.width;
+            final height = image.height;
+            final imageWithoutAlpha = image.convert(numChannels: 3);
+            final buffer = imageWithoutAlpha.getBytes(order: img.ChannelOrder.rgb);
+
+            String resultSubText;
+            final res = yolox.run(buffer, width, height);
+            resultSubText = res.map((e) => "x:${e.x} y:${e.y} w:${e.w} h:${e.h} p:${e.prob} label:${yolox.category[e.category]}").join("\n");
+
+            setState(() {
+              predict_result = resultSubText;
+            });
+        });
+      }
+    );
+  }
+
+
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -213,7 +256,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    bool isImage = isSelectedItem == 'resnet18';
+    bool isImage = isSelectedItem == 'resnet18' || isSelectedItem == 'yolox';
 
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -273,6 +316,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 DropdownMenuItem(
                   child: Text('multilingual-e5'),
                   value: 'multilingual-e5',
+                ),
+                DropdownMenuItem(
+                  child: Text('yolox'),
+                  value: 'yolox',
                 ),
               ],
               //6
