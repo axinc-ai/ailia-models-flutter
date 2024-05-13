@@ -6,9 +6,7 @@ import 'dart:async'; //Future
 import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
-
-// kreleasemode
-import 'package:flutter/foundation.dart';
+import 'package:ailia/ailia.dart' as ailia_dart;
 
 // image
 import 'dart:ui' as ui;
@@ -17,6 +15,7 @@ import 'dart:ui' as ui;
 import 'image_classification/image_classification_sample.dart';
 import 'utils/download_model.dart';
 import 'audio_processing/whisper.dart';
+import 'natural_language_processing/multilingual_e5.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,7 +28,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ailia SDK Flutter Binding',
+      title: 'ailia MODELS Flutter',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -81,8 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final buffer = byteData.buffer;
     Directory tempDir = await getTemporaryDirectory();
     String tempPath = tempDir.path;
-    var filePath =
-      tempPath + '/${path}';
+    var filePath = '$tempPath/$path';
     return File(filePath)
       .writeAsBytes(buffer.asUint8List(byteData.offsetInBytes, 
     byteData.lengthInBytes));
@@ -93,11 +91,19 @@ class _MyHomePageState extends State<MyHomePage> {
     return decodeImageFromList(data.buffer.asUint8List());
   }
 
-  void _changeModel(){
+  void _displayDownloadBegin(){
     setState(() {
-      predict_result = "Processing...";
+      predict_result = "Downloading...";
     });
+  }
 
+  void _displayDownloadEnd(){
+    setState(() {
+      predict_result = "Download success.";
+    });
+  }
+
+  void _changeModel(){
     switch (isSelectedItem){
     case "resnet18":
       _ailiaImageClassificationResNet18();
@@ -105,23 +111,25 @@ class _MyHomePageState extends State<MyHomePage> {
     case "whisper":
       _ailiaAudioProcessingWhisper();
       break;
+    case "multilingual-e5":
+      _ailiaNaturalLanguageProcessingMultilingualE5();
+      break;
     }
   }
 
   void _ailiaImageClassificationResNet18(){
     // Load image
     loadImageFromAssets("assets/clock.jpg").then(
-      (image_async) {
-        print("Image load success");
-        image = image_async;
+      (imageAsync) {
+        image = imageAsync;
         setState(() { // apply to ui (call build)
           isImageloaded = true;
         });
 
         // Download onnx
-        print("Downloading model...");
+        _displayDownloadBegin();
         downloadModel("https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx", "resnet18.onnx", (onnx_file) {
-            print("Download model success");
+            _displayDownloadEnd();
             // Load image data
             image!.toByteData(format: ui.ImageByteFormat.rawRgba).then(
               (data){
@@ -139,14 +147,38 @@ class _MyHomePageState extends State<MyHomePage> {
   void _ailiaAudioProcessingWhisper() async{
     ByteData data = await rootBundle.load("assets/demo.wav");
     final wav = await Wav.read(data.buffer.asUint8List());
-    print("Downloading model...");
+    _displayDownloadBegin();
     downloadModel("https://storage.googleapis.com/ailia-models/whisper/encoder_tiny.opt3.onnx", "encoder_tiny.opt3.onnx", (onnx_encoder_file) {
       downloadModel("https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx", "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
-        print("Download model success");
+        _displayDownloadEnd();
         AudioProcessingWhisper whisper = AudioProcessingWhisper();
         String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file);
         setState(() {
           predict_result = text;
+        });
+      });
+    });
+  }
+
+  void _ailiaNaturalLanguageProcessingMultilingualE5() async{
+    _displayDownloadBegin();
+    downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/multilingual-e5-base.onnx", "multilingual-e5-base.onnx", (onnx_file) {
+      downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/sentencepiece.bpe.model", "sentencepiece.bpe.model", (spe_file) async {
+        print("Download model success");
+        _displayDownloadEnd();
+        NaturalLanguageProcessingMultilingualE5 e5 = NaturalLanguageProcessingMultilingualE5();
+        e5.open(onnx_file, spe_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+        String text1 = "Hello.";
+        String text2 = "こんにちは。";
+        String text3 = "Today is good day.";
+        List<double> embedding1 = e5.textEmbedding(text1);
+        List<double> embedding2 = e5.textEmbedding(text2);
+        List<double> embedding3 = e5.textEmbedding(text3);
+        double sim1 = e5.cosSimilarity(embedding1, embedding2);
+        double sim2 = e5.cosSimilarity(embedding1, embedding3);
+        e5.close();
+        setState(() {
+          predict_result = "$text1 vs $text2 sim $sim1\n$text1 vs $text3 sim $sim2\n";
         });
       });
     });
@@ -237,6 +269,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 DropdownMenuItem(
                   child: Text('whisper'),
                   value: 'whisper',
+                ),
+                DropdownMenuItem(
+                  child: Text('multilingual-e5'),
+                  value: 'multilingual-e5',
                 ),
               ],
               //6
