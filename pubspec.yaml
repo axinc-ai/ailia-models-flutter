@@ -36,7 +36,23 @@ dependencies:
       url: https://github.com/axinc-ai/ailia-sdk-flutter.git
       ref: main
 
+  ailia_audio:
+    git:
+      url: https://github.com/axinc-ai/ailia-audio-flutter.git
+      ref: main
+
+  ailia_tokenizer:
+    git:
+      url: https://github.com/axinc-ai/ailia-tokenizer-flutter.git
+      ref: main
+
+  ailia_speech:
+    git:
+      url: https://github.com/axinc-ai/ailia-speech-flutter.git
+      ref: main
+
   path_provider:
+  wav:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -67,6 +83,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/clock.jpg
+    - assets/demo.wav
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

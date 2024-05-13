@@ -1,6 +1,12 @@
 PODS:
   - ailia (0.0.1):
     - FlutterMacOS
+  - ailia_audio (0.0.1):
+    - FlutterMacOS
+  - ailia_speech (0.0.1):
+    - FlutterMacOS
+  - ailia_tokenizer (0.0.1):
+    - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - path_provider_foundation (0.0.1):
     - Flutter
@@ -8,12 +14,21 @@ PODS:
 
 DEPENDENCIES:
   - ailia (from `Flutter/ephemeral/.symlinks/plugins/ailia/macos`)
+  - ailia_audio (from `Flutter/ephemeral/.symlinks/plugins/ailia_audio/macos`)
+  - ailia_speech (from `Flutter/ephemeral/.symlinks/plugins/ailia_speech/macos`)
+  - ailia_tokenizer (from `Flutter/ephemeral/.symlinks/plugins/ailia_tokenizer/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
 
 EXTERNAL SOURCES:
   ailia:
     :path: Flutter/ephemeral/.symlinks/plugins/ailia/macos
+  ailia_audio:
+    :path: Flutter/ephemeral/.symlinks/plugins/ailia_audio/macos
+  ailia_speech:
+    :path: Flutter/ephemeral/.symlinks/plugins/ailia_speech/macos
+  ailia_tokenizer:
+    :path: Flutter/ephemeral/.symlinks/plugins/ailia_tokenizer/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
   path_provider_foundation:
@@ -21,6 +36,9 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   ailia: 9836b7ce6ec432bfecb1ed5ec5a3d1cb4d648bad
+  ailia_audio: debcc199da67cdfef543165c5b07f2a434f681df
+  ailia_speech: 65688df86e9c46fa80de5b7c4df40373dc7366bd
+  ailia_tokenizer: e76ee5c78d90e093189526bdd56b87dca25fe6ee
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
 

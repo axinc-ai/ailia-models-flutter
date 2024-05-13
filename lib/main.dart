@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; //rootBundle
 import 'dart:async'; //Future
 import 'package:path_provider/path_provider.dart';
+import 'package:wav/wav.dart';
 import 'dart:io';
 
 // kreleasemode
@@ -15,6 +16,7 @@ import 'dart:ui' as ui;
 // category
 import 'image_classification/image_classification_sample.dart';
 import 'utils/download_model.dart';
+import 'audio_processing/whisper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,7 +49,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'ailia SDK Flutter Binding'),
+      home: const MyHomePage(title: 'ailia MODELS Flutter'),
     );
   }
 }
@@ -91,7 +93,22 @@ class _MyHomePageState extends State<MyHomePage> {
     return decodeImageFromList(data.buffer.asUint8List());
   }
 
-  void _ailiaTest(){
+  void _changeModel(){
+    setState(() {
+      predict_result = "Processing...";
+    });
+
+    switch (isSelectedItem){
+    case "resnet18":
+      _ailiaImageClassificationResNet18();
+      break;
+    case "whisper":
+      _ailiaAudioProcessingWhisper();
+      break;
+    }
+  }
+
+  void _ailiaImageClassificationResNet18(){
     // Load image
     loadImageFromAssets("assets/clock.jpg").then(
       (image_async) {
@@ -119,6 +136,22 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _ailiaAudioProcessingWhisper() async{
+    ByteData data = await rootBundle.load("assets/demo.wav");
+    final wav = await Wav.read(data.buffer.asUint8List());
+    print("Downloading model...");
+    downloadModel("https://storage.googleapis.com/ailia-models/whisper/encoder_tiny.opt3.onnx", "encoder_tiny.opt3.onnx", (onnx_encoder_file) {
+      downloadModel("https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx", "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
+        print("Download model success");
+        AudioProcessingWhisper whisper = AudioProcessingWhisper();
+        String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file);
+        setState(() {
+          predict_result = text;
+        });
+      });
+    });
+  }
+
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -126,7 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // so that the display can reflect the updated values. If we changed
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
-      _ailiaTest();
+      _changeModel();
       _counter++;
     });
   }
@@ -148,6 +181,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isImage = isSelectedItem == 'resnet18';
+
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -200,8 +235,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   value: 'resnet18',
                 ),
                 DropdownMenuItem(
-                  child: Text('empty'),
-                  value: 'empty',
+                  child: Text('whisper'),
+                  value: 'whisper',
                 ),
               ],
               //6
@@ -213,11 +248,13 @@ class _MyHomePageState extends State<MyHomePage> {
               //7
               value: isSelectedItem,
             ),
-            new Container(
-              width: 224,
-              height: 224,
-              child: _buildImage(),
-            ),
+            if (isImage) ...[ 
+              new Container(
+                width: 224,
+                height: 224,
+                child: _buildImage(),
+              ),
+            ],
             Text(
               predict_result,
             ),
