@@ -1,5 +1,3 @@
-import 'package:ailia/ailia_model.dart';
-import 'package:ailia_models_flutter/object_detection/yolox.dart';
 import 'package:flutter/material.dart';
 
 // assets
@@ -10,16 +8,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia.dart' as ailia_dart;
+import 'package:ailia/ailia_license.dart';
 import 'package:image/image.dart' as img;
 
 // image
 import 'dart:ui' as ui;
 
-// category
-import 'image_classification/image_classification_sample.dart';
+// ai models
 import 'utils/download_model.dart';
+import 'image_classification/image_classification_sample.dart';
 import 'audio_processing/whisper.dart';
 import 'natural_language_processing/multilingual_e5.dart';
+import 'package:ailia_models_flutter/object_detection/yolox.dart';
 
 void main() {
   runApp(const MyApp());
@@ -107,7 +107,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _changeModel(){
+  Future<void> _changeModel() async{
+    await AiliaLicense.checkAndDownloadLicense();
+
     switch (isSelectedItem){
     case "resnet18":
       _ailiaImageClassificationResNet18();
@@ -227,14 +229,15 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
 
-  void _incrementCounter() {
+  void _incrementCounter() async {
+    await _changeModel();
+
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
       // so that the display can reflect the updated values. If we changed
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
-      _changeModel();
       _counter++;
     });
   }
