@@ -2,6 +2,18 @@
 
 A model library for flutter.
 
+## Requirements
+
+- flutter 3.19.6
+
+## Install and Run
+
+```
+git clone https://github.com/axinc-ai/ailia-models-flutter.git
+flutter pub get
+flutter run
+```
+
 ## Models
 
 ### Audio Processing
@@ -57,3 +69,7 @@ When integrating the ailia SDK into a new application, add the following to pubs
 ```
 
 Also, for macOS, it is necessary to set com.apple.security.app-sandbox to false in macos/Runner/Release.entitlements and macos/Runner/Debug.entitlements.
+
+For iOS, it is necessary to add Accelerate.framework and MetalPerformanceShaders.framework to xcode project.
+
+![framework](tutorial/ios.png)
