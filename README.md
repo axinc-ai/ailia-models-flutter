@@ -50,22 +50,22 @@ When integrating the ailia SDK into a new application, add the following to pubs
   ailia:
     git:
       url: https://github.com/axinc-ai/ailia-sdk-flutter.git
-      ref: main
+      ref: v1.3.0
 
   ailia_audio:
     git:
       url: https://github.com/axinc-ai/ailia-audio-flutter.git
-      ref: main
+      ref: v1.3.0
 
   ailia_tokenizer:
     git:
       url: https://github.com/axinc-ai/ailia-tokenizer-flutter.git
-      ref: main
+      ref: v1.1.0
 
   ailia_speech:
     git:
       url: https://github.com/axinc-ai/ailia-speech-flutter.git
-      ref: main
+      ref: v1.2.1
 ```
 
 Also, for macOS, it is necessary to set com.apple.security.app-sandbox to false in macos/Runner/Release.entitlements and macos/Runner/Debug.entitlements.
