@@ -33,31 +33,31 @@ class TextToSpeech {
   List<String> getModelList(int modelType){
     List<String> modelList = List<String>.empty(growable: true);
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/char.bin");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/COPYING");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/left-id.def");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/matrix.bin");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/pos-id.def");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/rewrite.def");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/right-id.def");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/sys.dic");
 
-    modelList.add("open_jtalk");
+    modelList.add("open_jtalk/open_jtalk_dic_utf_8-1.11");
     modelList.add("open_jtalk_dic_utf_8-1.11/unk.dic");
 
     if (modelType == ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2){
