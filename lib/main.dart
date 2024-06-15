@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia.dart' as ailia_dart;
+import 'package:ailia_voice/ailia_voice.dart' as ailia_voice_dart;
 import 'package:ailia/ailia_license.dart';
 import 'package:image/image.dart' as img;
 
@@ -18,8 +19,9 @@ import 'dart:ui' as ui;
 import 'utils/download_model.dart';
 import 'image_classification/image_classification_sample.dart';
 import 'audio_processing/whisper.dart';
+import 'text_to_speech/text_to_speech.dart';
 import 'natural_language_processing/multilingual_e5.dart';
-import 'package:ailia_models_flutter/object_detection/yolox.dart';
+import 'object_detection/yolox.dart';
 
 void main() {
   runApp(const MyApp());
@@ -123,7 +125,77 @@ class _MyHomePageState extends State<MyHomePage> {
     case "yolox":
       _ailiaObjectDetectionYoloX();
       break;
+    case "tacotron2":
+      _ailiaTextToSpeechTactoron2();
+      break;
+    case "gpt-sovits":
+      _ailiaTextToSpeechGPTSoVITS();
+      break;
+    default:
+      throw(Exception("Unknown model type"));
     }
+  }
+
+  void downloadModelFromModelList(int downloadCnt, List<String> modelList, Function callback){
+    String url = "https://storage.googleapis.com/ailia-models/${modelList[downloadCnt + 0]}/${modelList[downloadCnt + 1]}";
+    setState(() {
+      predict_result = "Downloading ${modelList[downloadCnt + 1]}";
+    });
+    downloadModel(
+        url,
+        modelList[downloadCnt + 1], (file) {
+          downloadCnt = downloadCnt + 2;
+          if (downloadCnt >= modelList.length){
+            callback();
+          }else{
+            downloadModelFromModelList(downloadCnt, modelList, callback);
+          }
+        }
+    );
+  }
+
+  void _ailiaTextToSpeechTactoron2(){
+    TextToSpeech textToSpeech = TextToSpeech();
+    List<String> modelList = textToSpeech.getModelList(ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      String encoderFile = await getModelPath("encoder.onnx");
+      String decoderFile = await getModelPath("decoder_iter.onnx");
+      String postnetFile = await getModelPath("postnet.onnx");
+      String waveglowFile = await getModelPath("waveglow.onnx");
+      String? sslFile;
+
+      String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
+      String targetText = "Hello world.";
+      String outputPath = await getModelPath("temp.wav");
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2);
+
+      setState(() {
+        predict_result = "finish";
+      });
+    });
+  }
+
+  void _ailiaTextToSpeechGPTSoVITS(){
+    TextToSpeech textToSpeech = TextToSpeech();
+    List<String> modelList = textToSpeech.getModelList(ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_GPT_SOVITS);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      String encoderFile = await getModelPath("t2s_encoder.onnx");
+      String decoderFile = await getModelPath("t2s_fsdec.onnx");
+      String postnetFile = await getModelPath("t2s_sdec.onnx");
+      String waveglowFile = await getModelPath("vits.onnx");
+      String sslFile = await getModelPath("cnhubert.onnx");
+
+      String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
+      String targetText = "Hello world.";
+      String outputPath = await getModelPath("temp.wav");
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_GPT_SOVITS);
+
+      setState(() {
+        predict_result = "finish";
+      });
+    });
   }
 
   void _ailiaImageClassificationResNet18(){
@@ -323,6 +395,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 DropdownMenuItem(
                   child: Text('yolox'),
                   value: 'yolox',
+                ),
+                DropdownMenuItem(
+                  child: Text('tacotron2'),
+                  value: 'tacotron2',
+                ),
+                DropdownMenuItem(
+                  child: Text('gpt-sovits'),
+                  value: 'gpt-sovits',
                 ),
               ],
               //6

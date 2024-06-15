@@ -1,0 +1,47 @@
+PODS:
+  - ailia (0.0.1):
+    - Flutter
+  - ailia_audio (0.0.1):
+    - Flutter
+  - ailia_speech (0.0.1):
+    - Flutter
+  - ailia_tokenizer (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - ailia (from `.symlinks/plugins/ailia/ios`)
+  - ailia_audio (from `.symlinks/plugins/ailia_audio/ios`)
+  - ailia_speech (from `.symlinks/plugins/ailia_speech/ios`)
+  - ailia_tokenizer (from `.symlinks/plugins/ailia_tokenizer/ios`)
+  - Flutter (from `Flutter`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+
+EXTERNAL SOURCES:
+  ailia:
+    :path: ".symlinks/plugins/ailia/ios"
+  ailia_audio:
+    :path: ".symlinks/plugins/ailia_audio/ios"
+  ailia_speech:
+    :path: ".symlinks/plugins/ailia_speech/ios"
+  ailia_tokenizer:
+    :path: ".symlinks/plugins/ailia_tokenizer/ios"
+  Flutter:
+    :path: Flutter
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+
+SPEC CHECKSUMS:
+  ailia: 37774b5dfd9d4f3f1210d24c4865d1ec60c129bf
+  ailia_audio: 6640642df6b80c6157aa012831e49b2628e048f1
+  ailia_speech: 1b165dc4dc4846b7f12d39e2378f4173de9e91c3
+  ailia_tokenizer: f3ab0f73a9c93030a0fa6a3ae003c78e0a26d948
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+
+PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
+
+COCOAPODS: 1.15.2
