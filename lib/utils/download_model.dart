@@ -84,13 +84,11 @@ void downloadModel(
         if (hasIOError) {
           await tempFile.delete();
           throw Exception("$filename : ${ioError.toString()}");
-          return;
         }
 
         if (r.statusCode != 200) {
           await tempFile.delete();
           throw Exception("$filename : ${r.statusCode}");
-          return;
         }
 
         try {
