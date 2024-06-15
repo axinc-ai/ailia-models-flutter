@@ -230,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
     downloadModelFromModelList(0, modelList, () async {
       String encoderFile = await getModelPath("t2s_encoder.onnx");
       String decoderFile = await getModelPath("t2s_fsdec.onnx");
-      String postnetFile = await getModelPath("t2s_sdec.onnx");
+      String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
       String waveglowFile = await getModelPath("vits.onnx");
       String sslFile = await getModelPath("cnhubert.onnx");
 
