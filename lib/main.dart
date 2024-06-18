@@ -8,8 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia.dart' as ailia_dart;
+import 'package:ailia_voice/ailia_voice.dart' as ailia_voice_dart;
 import 'package:ailia/ailia_license.dart';
 import 'package:image/image.dart' as img;
+import 'package:path/path.dart';
 
 // image
 import 'dart:ui' as ui;
@@ -18,8 +20,10 @@ import 'dart:ui' as ui;
 import 'utils/download_model.dart';
 import 'image_classification/image_classification_sample.dart';
 import 'audio_processing/whisper.dart';
+import 'text_to_speech/text_to_speech.dart';
+import 'natural_language_processing/fugumt.dart';
 import 'natural_language_processing/multilingual_e5.dart';
-import 'package:ailia_models_flutter/object_detection/yolox.dart';
+import 'object_detection/yolox.dart';
 
 void main() {
   runApp(const MyApp());
@@ -123,7 +127,122 @@ class _MyHomePageState extends State<MyHomePage> {
     case "yolox":
       _ailiaObjectDetectionYoloX();
       break;
+    case "fugumt-en-ja":
+      _ailiaNaturalLanguageProcessingFuguMTEnJa();
+      break;
+    case "fugumt-ja-en":
+      _ailiaNaturalLanguageProcessingFuguMTJaEn();
+      break;
+    case "tacotron2":
+      _ailiaTextToSpeechTactoron2();
+      break;
+    case "gpt-sovits":
+      _ailiaTextToSpeechGPTSoVITS();
+      break;
+    default:
+      throw(Exception("Unknown model type"));
     }
+  }
+
+  void downloadModelFromModelList(int downloadCnt, List<String> modelList, Function callback){
+    String filename = basename(modelList[downloadCnt + 1]);
+    String url = "https://storage.googleapis.com/ailia-models/${modelList[downloadCnt + 0]}/$filename";
+    setState(() {
+      predict_result = "Downloading ${modelList[downloadCnt + 1]}";
+    });
+    downloadModel(
+        url,
+        modelList[downloadCnt + 1], (file) {
+          downloadCnt = downloadCnt + 2;
+          if (downloadCnt >= modelList.length){
+            callback();
+          }else{
+            downloadModelFromModelList(downloadCnt, modelList, callback);
+          }
+        }
+    );
+  }
+
+  void _ailiaNaturalLanguageProcessingFuguMTEnJa(){
+    NaturalLanguageProcessingFuguMT fuguMT = NaturalLanguageProcessingFuguMT();
+    List<String> modelList = fuguMT.getModelList(false);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      File encoderFile = File(await getModelPath("fugumt-en-ja/seq2seq-lm-with-past.onnx"));
+      File? decoderFile = null;
+      File sourceFile = File(await getModelPath("fugumt-en-ja/source.spm"));
+      File targetFile = File(await getModelPath("fugumt-en-ja/target.spm"));
+
+      String targetText = "Hello world.";
+      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, false, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+
+      setState(() {
+        predict_result = "${targetText} -> ${outputText}";
+      });
+    });
+  }
+
+  void _ailiaNaturalLanguageProcessingFuguMTJaEn(){
+    NaturalLanguageProcessingFuguMT fuguMT = NaturalLanguageProcessingFuguMT();
+    List<String> modelList = fuguMT.getModelList(true);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      File encoderFile = File(await getModelPath("fugumt-ja-en/encoder_model.onnx"));
+      File decoderFile = File(await getModelPath("fugumt-ja-en/decoder_model.onnx"));
+      File sourceFile = File(await getModelPath("fugumt-ja-en/source.spm"));
+      File targetFile = File(await getModelPath("fugumt-ja-en/target.spm"));
+
+      String targetText = "こんにちは世界。";
+      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, true, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+
+      setState(() {
+        predict_result = "${targetText} -> ${outputText}";
+      });
+    });
+  }
+
+  void _ailiaTextToSpeechTactoron2(){
+    TextToSpeech textToSpeech = TextToSpeech();
+    List<String> modelList = textToSpeech.getModelList(ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      String encoderFile = await getModelPath("encoder.onnx");
+      String decoderFile = await getModelPath("decoder_iter.onnx");
+      String postnetFile = await getModelPath("postnet.onnx");
+      String waveglowFile = await getModelPath("waveglow.onnx");
+      String? sslFile;
+
+      String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
+      String targetText = "Hello world.";
+      String outputPath = await getModelPath("temp.wav");
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2);
+
+      setState(() {
+        predict_result = "finish";
+      });
+    });
+  }
+
+  void _ailiaTextToSpeechGPTSoVITS(){
+    TextToSpeech textToSpeech = TextToSpeech();
+    List<String> modelList = textToSpeech.getModelList(ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_GPT_SOVITS);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      String encoderFile = await getModelPath("t2s_encoder.onnx");
+      String decoderFile = await getModelPath("t2s_fsdec.onnx");
+      String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
+      String waveglowFile = await getModelPath("vits.onnx");
+      String sslFile = await getModelPath("cnhubert.onnx");
+
+      String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
+      String targetText = "Hello world.";
+      String outputPath = await getModelPath("temp.wav");
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_GPT_SOVITS);
+
+      setState(() {
+        predict_result = "finish";
+      });
+    });
   }
 
   void _ailiaImageClassificationResNet18(){
@@ -261,39 +380,13 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     bool isImage = isSelectedItem == 'resnet18' || isSelectedItem == 'yolox';
 
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             const Text(
@@ -323,6 +416,22 @@ class _MyHomePageState extends State<MyHomePage> {
                 DropdownMenuItem(
                   child: Text('yolox'),
                   value: 'yolox',
+                ),
+                DropdownMenuItem(
+                  child: Text('fugumt-en-ja'),
+                  value: 'fugumt-en-ja',
+                ),
+                DropdownMenuItem(
+                  child: Text('fugumt-ja-en'),
+                  value: 'fugumt-ja-en',
+                ),
+                DropdownMenuItem(
+                  child: Text('tacotron2'),
+                  value: 'tacotron2',
+                ),
+                DropdownMenuItem(
+                  child: Text('gpt-sovits'),
+                  value: 'gpt-sovits',
                 ),
               ],
               //6
