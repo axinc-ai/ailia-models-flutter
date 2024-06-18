@@ -78,7 +78,3 @@ When integrating the ailia SDK into a new application, add the following to pubs
 ```
 
 Also, for macOS, it is necessary to set com.apple.security.app-sandbox to false in macos/Runner/Release.entitlements and macos/Runner/Debug.entitlements.
-
-For iOS, it is necessary to add Accelerate.framework and MetalPerformanceShaders.framework to xcode project.
-
-![framework](tutorial/ios.png)
