@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia.dart' as ailia_dart;
-import 'package:ailia_voice/ailia_voice.dart' as ailia_voice_dart;
 import 'package:ailia/ailia_license.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart';
@@ -136,8 +135,11 @@ class _MyHomePageState extends State<MyHomePage> {
     case "tacotron2":
       _ailiaTextToSpeechTactoron2();
       break;
-    case "gpt-sovits":
-      _ailiaTextToSpeechGPTSoVITS();
+    case "gpt-sovits-ja":
+      _ailiaTextToSpeechGPTSoVITS_JA();
+      break;
+    case "gpt-sovits-en":
+      _ailiaTextToSpeechGPTSoVITS_EN();
       break;
     default:
       throw(Exception("Unknown model type"));
@@ -203,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _ailiaTextToSpeechTactoron2(){
     TextToSpeech textToSpeech = TextToSpeech();
-    List<String> modelList = textToSpeech.getModelList(ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2);
+    List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_TACOTRON2);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
       String encoderFile = await getModelPath("encoder.onnx");
@@ -215,7 +217,7 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp.wav");
-      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_TACOTRON2);
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_TACOTRON2);
 
       setState(() {
         predict_result = "finish";
@@ -223,9 +225,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _ailiaTextToSpeechGPTSoVITS(){
+  void _ailiaTextToSpeechGPTSoVITS_JA(){
     TextToSpeech textToSpeech = TextToSpeech();
-    List<String> modelList = textToSpeech.getModelList(ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_GPT_SOVITS);
+    List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
       String encoderFile = await getModelPath("t2s_encoder.onnx");
@@ -237,7 +239,30 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp.wav");
-      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, ailia_voice_dart.AILIA_VOICE_MODEL_TYPE_GPT_SOVITS);
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
+
+      setState(() {
+        predict_result = "finish";
+      });
+    });
+  }
+
+  void _ailiaTextToSpeechGPTSoVITS_EN(){
+    TextToSpeech textToSpeech = TextToSpeech();
+    List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      String encoderFile = await getModelPath("t2s_encoder.onnx");
+      String decoderFile = await getModelPath("t2s_fsdec.onnx");
+      String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
+      String waveglowFile = await getModelPath("vits.onnx");
+      String sslFile = await getModelPath("cnhubert.onnx");
+
+      String dicFolderOpenJtalk = await getModelPath("open_jtalk_dic_utf_8-1.11/");
+      String dicFolderEn = await getModelPath("/");
+      String targetText = "Hello world.";
+      String outputPath = await getModelPath("temp.wav");
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolderOpenJtalk, dicFolderEn, TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
 
       setState(() {
         predict_result = "finish";
@@ -430,8 +455,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   value: 'tacotron2',
                 ),
                 DropdownMenuItem(
-                  child: Text('gpt-sovits'),
-                  value: 'gpt-sovits',
+                  child: Text('gpt-sovits-ja'),
+                  value: 'gpt-sovits-ja',
+                ),
+                DropdownMenuItem(
+                  child: Text('gpt-sovits-en'),
+                  value: 'gpt-sovits-en',
                 ),
               ],
               //6
