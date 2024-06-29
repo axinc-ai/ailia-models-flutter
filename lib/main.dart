@@ -216,7 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
-      String outputPath = await getModelPath("temp.wav");
+      String outputPath = await getModelPath("temp$_counter.wav");
       await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_TACOTRON2);
 
       setState(() {
@@ -238,7 +238,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
-      String outputPath = await getModelPath("temp.wav");
+      String outputPath = await getModelPath("temp$_counter.wav");
       await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
 
       setState(() {
@@ -261,7 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolderOpenJtalk = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String dicFolderEn = await getModelPath("/");
       String targetText = "Hello world.";
-      String outputPath = await getModelPath("temp.wav");
+      String outputPath = await getModelPath("temp$_counter.wav");
       await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolderOpenJtalk, dicFolderEn, TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
 
       setState(() {
