@@ -74,7 +74,7 @@ When integrating the ailia SDK into a new application, add the following to pubs
 
   ailia_voice:
     git:
-      url: https://github.com/axinc-ai/ailia-speech-voice.git
+      url: https://github.com/axinc-ai/ailia-voice-flutter.git
 ```
 
 Also, for macOS, it is necessary to set com.apple.security.app-sandbox to false in macos/Runner/Release.entitlements and macos/Runner/Debug.entitlements.
