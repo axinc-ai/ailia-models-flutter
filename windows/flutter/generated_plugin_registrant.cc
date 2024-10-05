@@ -8,6 +8,7 @@
 
 #include <ailia/ailia_plugin_c_api.h>
 #include <ailia_audio/ailia_audio_plugin_c_api.h>
+#include <ailia_llm/ailia_llm_plugin_c_api.h>
 #include <ailia_speech/ailia_speech_plugin_c_api.h>
 #include <ailia_tokenizer/ailia_tokenizer_plugin_c_api.h>
 #include <ailia_voice/ailia_voice_plugin_c_api.h>
@@ -18,6 +19,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("AiliaPluginCApi"));
   AiliaAudioPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("AiliaAudioPluginCApi"));
+  AiliaLlmPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("AiliaLlmPluginCApi"));
   AiliaSpeechPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("AiliaSpeechPluginCApi"));
   AiliaTokenizerPluginCApiRegisterWithRegistrar(

@@ -28,6 +28,12 @@ flutter run
 |:-----------|------------:|:------------:|:------------:|:------------:|
 | [resnet18](/lib/image_classification/) | [ResNet18]( https://pytorch.org/vision/main/generated/torchvision.models.resnet18.html) | Pytorch | 1.2.8 and later | |
 
+### Large Language model
+
+| | Model | Exported From | Supported Ailia Version | Blog |
+|:-----------|------------:|:------------:|:------------:|:------------:|
+| [gemma2](/lib/large_language_model/) | [gemma-2-2b](https://huggingface.co/google/gemma-2-2b) | llama.cpp | | |
+
 ### Natural Language Processing
 
 | | Model | Exported From | Supported Ailia Version | Blog |

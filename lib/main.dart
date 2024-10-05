@@ -23,6 +23,7 @@ import 'text_to_speech/text_to_speech.dart';
 import 'natural_language_processing/fugumt.dart';
 import 'natural_language_processing/multilingual_e5.dart';
 import 'object_detection/yolox.dart';
+import 'large_language_model/large_language_model.dart';
 
 void main() {
   runApp(const MyApp());
@@ -140,6 +141,9 @@ class _MyHomePageState extends State<MyHomePage> {
       break;
     case "gpt-sovits-en":
       _ailiaTextToSpeechGPTSoVITS_EN();
+      break;
+    case "gemma2":
+      _ailiaLargeLanguageModelGemma2();
       break;
     default:
       throw(Exception("Unknown model type"));
@@ -372,6 +376,21 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _ailiaLargeLanguageModelGemma2() async {
+    LargeLanguageModel llm = LargeLanguageModel();
+    List<String> modelList = llm.getModelList(true);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      File modelFile = File(await getModelPath("gemma/gemma-2-2b-it-Q4_K_M.gguf"));
+      String inputText = "こんにちは。";
+      llm.open(modelFile);
+      llm.setSystemPrompt("語尾に「わん」をつけてください。");
+      String outputText = llm.chat(inputText);
+      setState(() {
+        predict_result = "${inputText} -> ${outputText}";
+      });
+    });
+  }
 
   void _incrementCounter() async {
     await _changeModel();
@@ -461,6 +480,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 DropdownMenuItem(
                   child: Text('gpt-sovits-en'),
                   value: 'gpt-sovits-en',
+                ),
+                DropdownMenuItem(
+                  child: Text('gemma2'),
+                  value: 'gemma2',
                 ),
               ],
               //6
