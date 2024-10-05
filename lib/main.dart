@@ -378,10 +378,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _ailiaLargeLanguageModelGemma2() async {
     LargeLanguageModel llm = LargeLanguageModel();
-    List<String> modelList = llm.getModelList(true);
+    List<String> modelList = llm.getModelList();
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
-      File modelFile = File(await getModelPath("gemma/gemma-2-2b-it-Q4_K_M.gguf"));
+      File modelFile = File(await getModelPath("gemma-2-2b-it-Q4_K_M.gguf"));
       String inputText = "こんにちは。";
       llm.open(modelFile);
       llm.setSystemPrompt("語尾に「わん」をつけてください。");

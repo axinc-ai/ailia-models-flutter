@@ -5,7 +5,7 @@ import 'package:ailia_llm/ailia_llm_model.dart';
 class LargeLanguageModel {
   final AiliaLLMModel _ailiaLLMModel = AiliaLLMModel();
 
-  List<String> getModelList(bool jaEn){
+  List<String> getModelList(){
     List<String> modelList = List<String>.empty(growable: true);
 
     modelList.add("gemma");
