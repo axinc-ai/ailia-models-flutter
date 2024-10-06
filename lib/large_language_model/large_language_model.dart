@@ -15,6 +15,7 @@ class LargeLanguageModel {
   }
 
   List<Map<String, dynamic>> messages = List<Map<String, dynamic>>.empty(growable:true);
+  String systemPrompt = "";
 
   void open(File model){
     int nCtx = 8192; // 0 for modelDefault
@@ -22,10 +23,23 @@ class LargeLanguageModel {
   }
 
   void setSystemPrompt(String prompt){
-    messages.add({"role": "system", "content": prompt});
+    systemPrompt = prompt;
+    _addSystemPrompt();
+  }
+
+  void _addSystemPrompt(){
+    if (systemPrompt == ""){
+      return;
+    }
+    messages.add({"role": "system", "content": systemPrompt});
   }
 
   String chat(String inputText){
+    if (_ailiaLLMModel.contextFull()){
+      messages = List<Map<String, dynamic>>.empty(growable:true);
+      _addSystemPrompt();
+    }
+
     messages.add({"role": "user", "content": inputText});
     
     _ailiaLLMModel.setPrompt(messages);
