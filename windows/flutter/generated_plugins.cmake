@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   ailia
   ailia_audio
+  ailia_llm
   ailia_speech
   ailia_tokenizer
   ailia_voice
