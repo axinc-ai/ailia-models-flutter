@@ -38,7 +38,7 @@ class AudioProcessingWhisper {
       modelList.add("whisper");
       modelList.add("encoder_large_v3_turbo.onnx");
       modelList.add("whisper");
-      modelList.add("decoder_large_v3_turbo_fix_kv_cache.opt3.onnx");
+      modelList.add("decoder_large_v3_turbo_fix_kv_cache.onnx");
       modelList.add("whisper");
       modelList.add("encoder_large_v3_turbo_weights.pb");
     }
