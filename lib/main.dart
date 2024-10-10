@@ -118,8 +118,11 @@ class _MyHomePageState extends State<MyHomePage> {
     case "resnet18":
       _ailiaImageClassificationResNet18();
       break;
-    case "whisper":
-      _ailiaAudioProcessingWhisper();
+    case "whisper_tiny":
+    case "whisper_small":
+    case "whisper_medium":
+    case "whisper_large_v3_turbo":
+      _ailiaAudioProcessingWhisper(isSelectedItem!);
       break;
     case "multilingual-e5":
       _ailiaNaturalLanguageProcessingMultilingualE5();
@@ -301,18 +304,20 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _ailiaAudioProcessingWhisper() async{
+  void _ailiaAudioProcessingWhisper(String modelType) async{
     ByteData data = await rootBundle.load("assets/demo.wav");
     final wav = await Wav.read(data.buffer.asUint8List());
+    AudioProcessingWhisper whisper = AudioProcessingWhisper();
+    List<String> modelList = whisper.getModelList(modelType);
     _displayDownloadBegin();
-    downloadModel("https://storage.googleapis.com/ailia-models/whisper/encoder_tiny.opt3.onnx", "encoder_tiny.opt3.onnx", (onnx_encoder_file) {
-      downloadModel("https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx", "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
-        _displayDownloadEnd();
-        AudioProcessingWhisper whisper = AudioProcessingWhisper();
-        String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
-        setState(() {
-          predict_result = text;
-        });
+    downloadModelFromModelList(0, modelList, () async {
+      _displayDownloadEnd();
+      File vad_file = File(await getModelPath(modelList[1]));
+      File onnx_encoder_file = File(await getModelPath(modelList[3]));
+      File onnx_decoder_file = File(await getModelPath(modelList[5]));
+      String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, vad_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO, modelType);
+      setState(() {
+        predict_result = text;
       });
     });
   }
@@ -450,8 +455,20 @@ class _MyHomePageState extends State<MyHomePage> {
                   value: 'resnet18',
                 ),
                 DropdownMenuItem(
-                  child: Text('whisper'),
-                  value: 'whisper',
+                  child: Text('whisper_tiny'),
+                  value: 'whisper_tiny',
+                ),
+                DropdownMenuItem(
+                  child: Text('whisper_small'),
+                  value: 'whisper_small',
+                ),
+                DropdownMenuItem(
+                  child: Text('whisper_medium'),
+                  value: 'whisper_medium',
+                ),
+                DropdownMenuItem(
+                  child: Text('whisper_large_v3_turbo'),
+                  value: 'whisper_large_v3_turbo',
                 ),
                 DropdownMenuItem(
                   child: Text('multilingual-e5'),
