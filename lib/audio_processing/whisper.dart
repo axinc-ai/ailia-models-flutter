@@ -13,7 +13,7 @@ class AudioProcessingWhisper {
   List<String> getModelList(String type){
     List<String> modelList = List<String>.empty(growable: true);
 
-    modelList.add("silero_vad");
+    modelList.add("silero-vad");
     modelList.add("silero_vad.onnx");
 
     if (type == "whisper_tiny"){
