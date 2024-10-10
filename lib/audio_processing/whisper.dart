@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:wav/wav.dart';
@@ -66,29 +67,55 @@ class AudioProcessingWhisper {
     String lang = "auto"; // auto or ja
     _ailiaSpeechModel.open(onnx_encoder_file, onnx_decoder_file, vad_file, lang, typeId);
 
-    List<double> pcm = List<double>.empty(growable: true);
+    String transcribeResult = "";
 
-    for (int i = 0; i < wav.channels[0].length; ++i) {
-      for (int j = 0; j < wav.channels.length; ++j){
-        pcm.add(wav.channels[j][i]);
+      //_ailiaSpeechModel.setIntermediateCallback(_intermediateCallback);
+
+    bool oneShot = false;
+    if (oneShot){
+      // One shot feed mode
+      List<double> pcm = List<double>.empty(growable: true);
+
+      for (int i = 0; i < wav.channels[0].length; ++i) {
+        for (int j = 0; j < wav.channels.length; ++j){
+          pcm.add(wav.channels[j][i]);
+        }
       }
-    }
 
-    //_ailiaSpeechModel.setIntermediateCallback(_intermediateCallback);
+      _ailiaSpeechModel.pushInputData(pcm, wav.samplesPerSecond, wav.channels.length);
+      _ailiaSpeechModel.finalizeInputData(); // for one shot
 
-    _ailiaSpeechModel.pushInputData(pcm, wav.samplesPerSecond, wav.channels.length);
-    _ailiaSpeechModel.finalizeInputData(); // for one shot
+      List<SpeechText> texts = _ailiaSpeechModel.transcribeBatch();
+      for (int i = 0; i < texts.length; i++){
+        transcribeResult = transcribeResult + texts[i].text;
+      }
+    }else{
+      // chunk feed mode
+      int chunkSize = wav.samplesPerSecond;
+      for (int t = 0; t < wav.channels[0].length; t += chunkSize){
+        List<double> pcm = List<double>.empty(growable: true);
 
-    String transcribe_result = "";
+        for (int i = t; i < min(t + chunkSize, wav.channels[0].length); ++i) {
+          for (int j = 0; j < wav.channels.length; ++j){
+            pcm.add(wav.channels[j][i]);
+          }
+        }
 
-    List<SpeechText> texts = _ailiaSpeechModel.transcribeBatch();
-    for (int i = 0; i < texts.length; i++){
-      transcribe_result = transcribe_result + texts[i].text;
+        _ailiaSpeechModel.pushInputData(pcm, wav.samplesPerSecond, wav.channels.length);
+        if (t + chunkSize >= wav.channels[0].length){
+          _ailiaSpeechModel.finalizeInputData();
+        }
+
+        List<SpeechText> texts = _ailiaSpeechModel.transcribeBatch();
+        for (int i = 0; i < texts.length; i++){
+          transcribeResult = transcribeResult + texts[i].text;
+        }
+      }
     }
 
     _ailiaSpeechModel.close();
 
-    return transcribe_result;
+    return transcribeResult;
   }
 
 }
