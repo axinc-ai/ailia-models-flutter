@@ -37,11 +37,11 @@ class AudioProcessingWhisper {
     }
     if (type == "whisper_large_v3_turbo"){
       modelList.add("whisper");
-      modelList.add("encoder_large_v3_turbo.onnx");
+      modelList.add("encoder_turbo.onnx");
       modelList.add("whisper");
-      modelList.add("decoder_large_v3_turbo_fix_kv_cache.onnx");
+      modelList.add("decoder_turbo_fix_kv_cache.onnx");
       modelList.add("whisper");
-      modelList.add("encoder_large_v3_turbo_weights.pb");
+      modelList.add("encoder_turbo_weights.pb");
     }
 
     return modelList;
