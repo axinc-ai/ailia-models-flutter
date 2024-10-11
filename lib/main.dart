@@ -38,48 +38,24 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ailia MODELS Flutter',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'ailia MODELS Flutter'),
+      home: const AiliaModelsFlutter(title: 'ailia MODELS Flutter'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+class AiliaModelsFlutter extends StatefulWidget {
+  const AiliaModelsFlutter({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AiliaModelsFlutter> createState() => _AiliaModelsFlutterState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   int _counter = 0;
   String predict_result = "";
 
@@ -111,10 +87,11 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _displayDownloadEnd(){
+  Future<void> _displayDownloadEnd() async{
     setState(() {
       predict_result = "Download success.";
     });
+    await Future.delayed(new Duration(milliseconds: 100));
   }
 
   Future<void> _changeModel() async{
@@ -171,9 +148,6 @@ class _MyHomePageState extends State<MyHomePage> {
         modelList[downloadCnt + 1], (file) {
           downloadCnt = downloadCnt + 2;
           if (downloadCnt >= modelList.length){
-            setState(() {
-              predict_result = "Download success.";
-            });
             callback();
           }else{
             downloadModelFromModelList(downloadCnt, modelList, callback);
@@ -191,6 +165,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = fuguMT.getModelList(false);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       File encoderFile = File(await getModelPath("fugumt-en-ja/seq2seq-lm-with-past.onnx"));
       File? decoderFile = null;
       File sourceFile = File(await getModelPath("fugumt-en-ja/source.spm"));
@@ -213,6 +189,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = fuguMT.getModelList(true);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       File encoderFile = File(await getModelPath("fugumt-ja-en/encoder_model.onnx"));
       File decoderFile = File(await getModelPath("fugumt-ja-en/decoder_model.onnx"));
       File sourceFile = File(await getModelPath("fugumt-ja-en/source.spm"));
@@ -235,6 +213,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_TACOTRON2);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       String encoderFile = await getModelPath("encoder.onnx");
       String decoderFile = await getModelPath("decoder_iter.onnx");
       String postnetFile = await getModelPath("postnet.onnx");
@@ -261,6 +241,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       String encoderFile = await getModelPath("t2s_encoder.onnx");
       String decoderFile = await getModelPath("t2s_fsdec.onnx");
       String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
@@ -287,6 +269,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       String encoderFile = await getModelPath("t2s_encoder.onnx");
       String decoderFile = await getModelPath("t2s_fsdec.onnx");
       String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
@@ -320,8 +304,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // Download onnx
         _displayDownloadBegin();
-        downloadModel("https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx", "resnet18.onnx", (onnx_file) {
-            _displayDownloadEnd();
+        downloadModel("https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx", "resnet18.onnx", (onnx_file) async {
+            await _displayDownloadEnd();
             // Load image data
             image!.toByteData(format: ui.ImageByteFormat.rawRgba).then(
               (data){
@@ -349,7 +333,7 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = whisper.getModelList(modelType);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
-      _displayDownloadEnd();
+      await _displayDownloadEnd();
       File vad_file = File(await getModelPath(modelList[1]));
       File onnx_encoder_file = File(await getModelPath(modelList[3]));
       File onnx_decoder_file = File(await getModelPath(modelList[5]));
@@ -365,7 +349,7 @@ class _MyHomePageState extends State<MyHomePage> {
     downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/multilingual-e5-base.onnx", "multilingual-e5-base.onnx", (onnx_file) {
       downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/sentencepiece.bpe.model", "sentencepiece.bpe.model", (spe_file) async {
         print("Download model success");
-        _displayDownloadEnd();
+        await _displayDownloadEnd();
         NaturalLanguageProcessingMultilingualE5 e5 = NaturalLanguageProcessingMultilingualE5();
         e5.open(onnx_file, spe_file, selectedEnvId);
         String text1 = "Hello.";
@@ -399,8 +383,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // Download onnx
         _displayDownloadBegin();
-        downloadModel("https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx", "yolox_s.opt.onnx", (onnx_file) {
-            _displayDownloadEnd();
+        downloadModel("https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx", "yolox_s.opt.onnx", (onnx_file) async {
+            await _displayDownloadEnd();
             ObjectDetectionYoloX yolox = ObjectDetectionYoloX();
             yolox.open(onnx_file, selectedEnvId);
 
@@ -447,11 +431,6 @@ class _MyHomePageState extends State<MyHomePage> {
     await _changeModel();
 
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
       _counter++;
     });
   }
@@ -479,6 +458,22 @@ class _MyHomePageState extends State<MyHomePage> {
     if (envList.length == 0){
       envList = AiliaModel.getEnvironmentList();
     }
+
+    List<String> modelList = [];
+    modelList.add('resnet18');
+    modelList.add('whisper_tiny');
+    modelList.add('whisper_small');
+    modelList.add('whisper_medium');
+    modelList.add('whisper_large_v3_turbo');
+    modelList.add('whisper_large_v3_turbo_with_virtual_memory');
+    modelList.add('multilingual-e5');
+    modelList.add('yolox');
+    modelList.add('fugumt-en-ja');
+    modelList.add('fugumt-ja-en');
+    modelList.add('tacotron2');
+    modelList.add('gpt-sovits-ja');
+    modelList.add('gpt-sovits-en');
+    modelList.add('gemma2');
 
     return Scaffold(
       appBar: AppBar(
@@ -512,64 +507,13 @@ class _MyHomePageState extends State<MyHomePage> {
               value: selectedEnvId,
             ),
             DropdownButton(
-              items: const [
-                DropdownMenuItem(
-                  child: Text('resnet18'),
-                  value: 'resnet18',
-                ),
-                DropdownMenuItem(
-                  child: Text('whisper_tiny'),
-                  value: 'whisper_tiny',
-                ),
-                DropdownMenuItem(
-                  child: Text('whisper_small'),
-                  value: 'whisper_small',
-                ),
-                DropdownMenuItem(
-                  child: Text('whisper_medium'),
-                  value: 'whisper_medium',
-                ),
-                DropdownMenuItem(
-                  child: Text('whisper_large_v3_turbo'),
-                  value: 'whisper_large_v3_turbo',
-                ),
-                DropdownMenuItem(
-                  child: Text('whisper_large_v3_turbo_with_virtual_memory'),
-                  value: 'whisper_large_v3_turbo_with_virtual_memory',
-                ),
-                DropdownMenuItem(
-                  child: Text('multilingual-e5'),
-                  value: 'multilingual-e5',
-                ),
-                DropdownMenuItem(
-                  child: Text('yolox'),
-                  value: 'yolox',
-                ),
-                DropdownMenuItem(
-                  child: Text('fugumt-en-ja'),
-                  value: 'fugumt-en-ja',
-                ),
-                DropdownMenuItem(
-                  child: Text('fugumt-ja-en'),
-                  value: 'fugumt-ja-en',
-                ),
-                DropdownMenuItem(
-                  child: Text('tacotron2'),
-                  value: 'tacotron2',
-                ),
-                DropdownMenuItem(
-                  child: Text('gpt-sovits-ja'),
-                  value: 'gpt-sovits-ja',
-                ),
-                DropdownMenuItem(
-                  child: Text('gpt-sovits-en'),
-                  value: 'gpt-sovits-en',
-                ),
-                DropdownMenuItem(
-                  child: Text('gemma2'),
-                  value: 'gemma2',
-                ),
-              ],
+              items:
+                modelList.map((item) => 
+                  DropdownMenuItem(
+                    child: Text(item),
+                    value: item,
+                  )
+                ).toList(),
               onChanged: (String? value) {
                 setState(() {
                   isSelectedItem = value;
