@@ -7,7 +7,7 @@ import 'dart:async'; //Future
 import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 import 'dart:io';
-import 'package:ailia/ailia.dart' as ailia_dart;
+import 'package:ailia/ailia_model.dart';
 import 'package:ailia/ailia_license.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart';
@@ -38,48 +38,24 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ailia MODELS Flutter',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'ailia MODELS Flutter'),
+      home: const AiliaModelsFlutter(title: 'ailia MODELS Flutter'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+class AiliaModelsFlutter extends StatefulWidget {
+  const AiliaModelsFlutter({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AiliaModelsFlutter> createState() => _AiliaModelsFlutterState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   int _counter = 0;
   String predict_result = "";
 
@@ -105,10 +81,17 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _displayDownloadEnd(){
+  void _displayDownloadProgress(progress){
+    setState(() {
+      predict_result = "Downloading... ${progress ~/ 1024 ~/ 1024} MB";
+    });
+  }
+
+  Future<void> _displayDownloadEnd() async{
     setState(() {
       predict_result = "Download success.";
     });
+    await Future.delayed(new Duration(milliseconds: 100));
   }
 
   Future<void> _changeModel() async{
@@ -118,8 +101,12 @@ class _MyHomePageState extends State<MyHomePage> {
     case "resnet18":
       _ailiaImageClassificationResNet18();
       break;
-    case "whisper":
-      _ailiaAudioProcessingWhisper();
+    case "whisper_tiny":
+    case "whisper_small":
+    case "whisper_medium":
+    case "whisper_large_v3_turbo":
+    case "whisper_large_v3_turbo_with_virtual_memory":
+      _ailiaAudioProcessingWhisper(isSelectedItem!);
       break;
     case "multilingual-e5":
       _ailiaNaturalLanguageProcessingMultilingualE5();
@@ -165,6 +152,10 @@ class _MyHomePageState extends State<MyHomePage> {
           }else{
             downloadModelFromModelList(downloadCnt, modelList, callback);
           }
+        }, (progress) {
+          setState(() {
+            predict_result = "Downloading ${modelList[downloadCnt + 1]} ${progress ~/ 1024 ~/ 1024} MB";
+          });
         }
     );
   }
@@ -174,16 +165,21 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = fuguMT.getModelList(false);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       File encoderFile = File(await getModelPath("fugumt-en-ja/seq2seq-lm-with-past.onnx"));
       File? decoderFile = null;
       File sourceFile = File(await getModelPath("fugumt-en-ja/source.spm"));
       File targetFile = File(await getModelPath("fugumt-en-ja/target.spm"));
 
+      int startTime = DateTime.now().millisecondsSinceEpoch;
       String targetText = "Hello world.";
-      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, false, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, false, selectedEnvId);
+      int endTime = DateTime.now().millisecondsSinceEpoch;
+      String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
 
       setState(() {
-        predict_result = "${targetText} -> ${outputText}";
+        predict_result = "${targetText} -> ${outputText}\n${profileText}";
       });
     });
   }
@@ -193,16 +189,21 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = fuguMT.getModelList(true);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       File encoderFile = File(await getModelPath("fugumt-ja-en/encoder_model.onnx"));
       File decoderFile = File(await getModelPath("fugumt-ja-en/decoder_model.onnx"));
       File sourceFile = File(await getModelPath("fugumt-ja-en/source.spm"));
       File targetFile = File(await getModelPath("fugumt-ja-en/target.spm"));
 
+      int startTime = DateTime.now().millisecondsSinceEpoch;
       String targetText = "こんにちは世界。";
-      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, true, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, true, selectedEnvId);
+      int endTime = DateTime.now().millisecondsSinceEpoch;
+      String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
 
       setState(() {
-        predict_result = "${targetText} -> ${outputText}";
+        predict_result = "${targetText} -> ${outputText}\n${profileText}";
       });
     });
   }
@@ -212,6 +213,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_TACOTRON2);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       String encoderFile = await getModelPath("encoder.onnx");
       String decoderFile = await getModelPath("decoder_iter.onnx");
       String postnetFile = await getModelPath("postnet.onnx");
@@ -221,10 +224,14 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp$_counter.wav");
+
+      int startTime = DateTime.now().millisecondsSinceEpoch;
       await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_TACOTRON2);
+      int endTime = DateTime.now().millisecondsSinceEpoch;
+      String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
 
       setState(() {
-        predict_result = "finish";
+        predict_result = profileText;
       });
     });
   }
@@ -234,6 +241,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       String encoderFile = await getModelPath("t2s_encoder.onnx");
       String decoderFile = await getModelPath("t2s_fsdec.onnx");
       String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
@@ -243,10 +252,14 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp$_counter.wav");
+
+      int startTime = DateTime.now().millisecondsSinceEpoch;
       await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
+      int endTime = DateTime.now().millisecondsSinceEpoch;
+      String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
 
       setState(() {
-        predict_result = "finish";
+        predict_result = profileText;
       });
     });
   }
@@ -256,6 +269,8 @@ class _MyHomePageState extends State<MyHomePage> {
     List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+
       String encoderFile = await getModelPath("t2s_encoder.onnx");
       String decoderFile = await getModelPath("t2s_fsdec.onnx");
       String postnetFile = await getModelPath("t2s_sdec.opt.onnx");
@@ -266,10 +281,14 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolderEn = await getModelPath("/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp$_counter.wav");
+
+      int startTime = DateTime.now().millisecondsSinceEpoch;
       await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolderOpenJtalk, dicFolderEn, TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
+      int endTime = DateTime.now().millisecondsSinceEpoch;
+      String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
 
       setState(() {
-        predict_result = "finish";
+        predict_result = profileText;
       });
     });
   }
@@ -285,34 +304,42 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // Download onnx
         _displayDownloadBegin();
-        downloadModel("https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx", "resnet18.onnx", (onnx_file) {
-            _displayDownloadEnd();
+        downloadModel("https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx", "resnet18.onnx", (onnx_file) async {
+            await _displayDownloadEnd();
             // Load image data
             image!.toByteData(format: ui.ImageByteFormat.rawRgba).then(
               (data){
                 ailiaEnvironmentSample();
+
+                int startTime = DateTime.now().millisecondsSinceEpoch;
+                String classificationText = ailiaPredictSample(onnx_file, data!);
+                int endTime = DateTime.now().millisecondsSinceEpoch;
+                String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
+
                 setState(() {
-                  predict_result = ailiaPredictSample(onnx_file, data!);
+                  predict_result = "${classificationText}\n${profileText}";
                 });
               }
             );
-        });
+        }, _displayDownloadProgress);
       }
     );
   }
 
-  void _ailiaAudioProcessingWhisper() async{
+  void _ailiaAudioProcessingWhisper(String modelType) async{
     ByteData data = await rootBundle.load("assets/demo.wav");
     final wav = await Wav.read(data.buffer.asUint8List());
+    AudioProcessingWhisper whisper = AudioProcessingWhisper();
+    List<String> modelList = whisper.getModelList(modelType);
     _displayDownloadBegin();
-    downloadModel("https://storage.googleapis.com/ailia-models/whisper/encoder_tiny.opt3.onnx", "encoder_tiny.opt3.onnx", (onnx_encoder_file) {
-      downloadModel("https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx", "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
-        _displayDownloadEnd();
-        AudioProcessingWhisper whisper = AudioProcessingWhisper();
-        String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
-        setState(() {
-          predict_result = text;
-        });
+    downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+      File vad_file = File(await getModelPath(modelList[1]));
+      File onnx_encoder_file = File(await getModelPath(modelList[3]));
+      File onnx_decoder_file = File(await getModelPath(modelList[5]));
+      String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType);
+      setState(() {
+        predict_result = text;
       });
     });
   }
@@ -322,23 +349,26 @@ class _MyHomePageState extends State<MyHomePage> {
     downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/multilingual-e5-base.onnx", "multilingual-e5-base.onnx", (onnx_file) {
       downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/sentencepiece.bpe.model", "sentencepiece.bpe.model", (spe_file) async {
         print("Download model success");
-        _displayDownloadEnd();
+        await _displayDownloadEnd();
         NaturalLanguageProcessingMultilingualE5 e5 = NaturalLanguageProcessingMultilingualE5();
-        e5.open(onnx_file, spe_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+        e5.open(onnx_file, spe_file, selectedEnvId);
         String text1 = "Hello.";
         String text2 = "こんにちは。";
         String text3 = "Today is good day.";
+        int startTime = DateTime.now().millisecondsSinceEpoch;
         List<double> embedding1 = e5.textEmbedding(text1);
         List<double> embedding2 = e5.textEmbedding(text2);
         List<double> embedding3 = e5.textEmbedding(text3);
         double sim1 = e5.cosSimilarity(embedding1, embedding2);
         double sim2 = e5.cosSimilarity(embedding1, embedding3);
+        int endTime = DateTime.now().millisecondsSinceEpoch;
+        String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
         e5.close();
         setState(() {
-          predict_result = "$text1 vs $text2 sim $sim1\n$text1 vs $text3 sim $sim2\n";
+          predict_result = "$text1 vs $text2 sim $sim1\n$text1 vs $text3 sim $sim2\n${profileText}";
         });
-      });
-    });
+      }, _displayDownloadProgress);
+    }, _displayDownloadProgress);
   }
 
   void _ailiaObjectDetectionYoloX() async{
@@ -353,10 +383,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // Download onnx
         _displayDownloadBegin();
-        downloadModel("https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx", "yolox_s.opt.onnx", (onnx_file) {
-            _displayDownloadEnd();
+        downloadModel("https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx", "yolox_s.opt.onnx", (onnx_file) async {
+            await _displayDownloadEnd();
             ObjectDetectionYoloX yolox = ObjectDetectionYoloX();
-            yolox.open(onnx_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+            yolox.open(onnx_file, selectedEnvId);
 
             final image = img.decodeImage(imData.buffer.asUint8List())!;
             final width = image.width;
@@ -365,13 +395,18 @@ class _MyHomePageState extends State<MyHomePage> {
             final buffer = imageWithoutAlpha.getBytes(order: img.ChannelOrder.rgb);
 
             String resultSubText;
+
+            int startTime = DateTime.now().millisecondsSinceEpoch;
             final res = yolox.run(buffer, width, height);
+            int endTime = DateTime.now().millisecondsSinceEpoch;
+            String profileText = "processing time : ${(endTime - startTime) / 1000} sec";
+        
             resultSubText = res.map((e) => "x:${e.x} y:${e.y} w:${e.w} h:${e.h} p:${e.prob} label:${yolox.category[e.category]}").join("\n");
 
             setState(() {
-              predict_result = resultSubText;
+              predict_result = "${resultSubText}\n${profileText}";
             });
-        });
+        }, _displayDownloadProgress);
       }
     );
   }
@@ -396,11 +431,6 @@ class _MyHomePageState extends State<MyHomePage> {
     await _changeModel();
 
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
       _counter++;
     });
   }
@@ -419,10 +449,31 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   
   String? isSelectedItem = 'resnet18';
-
+  List<AiliaEnvironment> envList = [];
+  int selectedEnvId = 1;
+  
   @override
   Widget build(BuildContext context) {
     bool isImage = isSelectedItem == 'resnet18' || isSelectedItem == 'yolox';
+    if (envList.length == 0){
+      envList = AiliaModel.getEnvironmentList();
+    }
+
+    List<String> modelList = [];
+    modelList.add('resnet18');
+    modelList.add('whisper_tiny');
+    modelList.add('whisper_small');
+    modelList.add('whisper_medium');
+    modelList.add('whisper_large_v3_turbo');
+    modelList.add('whisper_large_v3_turbo_with_virtual_memory');
+    modelList.add('multilingual-e5');
+    modelList.add('yolox');
+    modelList.add('fugumt-en-ja');
+    modelList.add('fugumt-ja-en');
+    modelList.add('tacotron2');
+    modelList.add('gpt-sovits-ja');
+    modelList.add('gpt-sovits-en');
+    modelList.add('gemma2');
 
     return Scaffold(
       appBar: AppBar(
@@ -440,59 +491,34 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
-            //3
             DropdownButton(
-              //4
-              items: const [
-                //5
-                DropdownMenuItem(
-                  child: Text('resnet18'),
-                  value: 'resnet18',
-                ),
-                DropdownMenuItem(
-                  child: Text('whisper'),
-                  value: 'whisper',
-                ),
-                DropdownMenuItem(
-                  child: Text('multilingual-e5'),
-                  value: 'multilingual-e5',
-                ),
-                DropdownMenuItem(
-                  child: Text('yolox'),
-                  value: 'yolox',
-                ),
-                DropdownMenuItem(
-                  child: Text('fugumt-en-ja'),
-                  value: 'fugumt-en-ja',
-                ),
-                DropdownMenuItem(
-                  child: Text('fugumt-ja-en'),
-                  value: 'fugumt-ja-en',
-                ),
-                DropdownMenuItem(
-                  child: Text('tacotron2'),
-                  value: 'tacotron2',
-                ),
-                DropdownMenuItem(
-                  child: Text('gpt-sovits-ja'),
-                  value: 'gpt-sovits-ja',
-                ),
-                DropdownMenuItem(
-                  child: Text('gpt-sovits-en'),
-                  value: 'gpt-sovits-en',
-                ),
-                DropdownMenuItem(
-                  child: Text('gemma2'),
-                  value: 'gemma2',
-                ),
-              ],
-              //6
+              items:
+                envList.map((item) => 
+                  DropdownMenuItem(
+                    child: Text(item.name),
+                    value: item.id,
+                  )
+                ).toList(),
+              onChanged: (int? value) {
+                setState(() {
+                  selectedEnvId = value!;
+                });
+              },
+              value: selectedEnvId,
+            ),
+            DropdownButton(
+              items:
+                modelList.map((item) => 
+                  DropdownMenuItem(
+                    child: Text(item),
+                    value: item,
+                  )
+                ).toList(),
               onChanged: (String? value) {
                 setState(() {
                   isSelectedItem = value;
                 });
               },
-              //7
               value: isSelectedItem,
             ),
             if (isImage) ...[ 

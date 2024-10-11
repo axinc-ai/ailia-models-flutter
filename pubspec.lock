@@ -6,10 +6,10 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "7b153c298f8da30312c1b88da7d7bdeea1806599"
+      resolved-ref: "22e7d8956bc85ec85a42bdeddb3edd4a0aba03cc"
       url: "https://github.com/axinc-ai/ailia-sdk-flutter.git"
     source: git
-    version: "1.4.0"
+    version: "1.4.2"
   ailia_audio:
     dependency: "direct main"
     description:
@@ -24,19 +24,19 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: b72a91b9d9038cb7b96527c4ff4e5db811f47174
+      resolved-ref: "459d676898eeca20ac194a9329f587ea2a19c90d"
       url: "https://github.com/axinc-ai/ailia-llm-flutter.git"
     source: git
-    version: "1.0.0"
+    version: "1.0.1"
   ailia_speech:
     dependency: "direct main"
     description:
       path: "."
       ref: main
-      resolved-ref: e708a65db8b8d137e889ff026bec80ee837bf2e7
+      resolved-ref: c14081b79c45a30556bc3dad5ac5c0da9f244179
       url: "https://github.com/axinc-ai/ailia-speech-flutter.git"
     source: git
-    version: "1.3.0"
+    version: "1.3.1"
   ailia_tokenizer:
     dependency: "direct main"
     description:
@@ -195,10 +195,10 @@ packages:
     dependency: transitive
     description:
       name: file
-      sha256: "5fc22d7c25582e38ad9a8515372cd9a93834027aacf1801cf01164dac0ffa08c"
+      sha256: a3b4f84adafef897088c160faf7dfffb7696046cb13ae90b508c2cbc95d3b8d4
       url: "https://pub.dev"
     source: hosted
-    version: "7.0.0"
+    version: "7.0.1"
   fixnum:
     dependency: transitive
     description:
