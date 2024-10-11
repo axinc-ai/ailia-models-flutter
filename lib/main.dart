@@ -128,6 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
     case "whisper_small":
     case "whisper_medium":
     case "whisper_large_v3_turbo":
+    case "whisper_large_v3_turbo_with_virtual_memory":
       _ailiaAudioProcessingWhisper(isSelectedItem!);
       break;
     case "multilingual-e5":
@@ -479,6 +480,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 DropdownMenuItem(
                   child: Text('whisper_large_v3_turbo'),
                   value: 'whisper_large_v3_turbo',
+                ),
+                DropdownMenuItem(
+                  child: Text('whisper_large_v3_turbo_with_virtual_memory'),
+                  value: 'whisper_large_v3_turbo_with_virtual_memory',
                 ),
                 DropdownMenuItem(
                   child: Text('multilingual-e5'),

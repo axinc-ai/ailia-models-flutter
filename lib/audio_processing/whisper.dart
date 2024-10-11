@@ -2,11 +2,13 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wav/wav.dart';
 
 import 'package:flutter/services.dart';
 import 'package:ailia_speech/ailia_speech.dart' as ailia_speech_dart;
 import 'package:ailia_speech/ailia_speech_model.dart';
+import 'package:ailia/ailia_model.dart';
 
 class AudioProcessingWhisper {
   final AiliaSpeechModel _ailiaSpeechModel = AiliaSpeechModel();
@@ -35,7 +37,7 @@ class AudioProcessingWhisper {
       modelList.add("whisper");
       modelList.add("decoder_medium_fix_kv_cache.opt3.onnx");
     }
-    if (type == "whisper_large_v3_turbo"){
+    if (type == "whisper_large_v3_turbo" || type == "whisper_large_v3_turbo_with_virtual_memory"){
       modelList.add("whisper");
       modelList.add("encoder_turbo.onnx");
       modelList.add("whisper");
@@ -46,36 +48,14 @@ class AudioProcessingWhisper {
 
     return modelList;
   }
+
   void _intermediateCallback(String text){
+    print(text);
   }
 
-  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type) async{
-    _ailiaSpeechModel.create(false, false, env_id);
-    int typeId = 0;
-    if (type == "whisper_tiny"){
-      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_TINY;
-    }
-    if (type == "whisper_small"){
-      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_SMALL;
-    }
-    if (type == "whisper_medium"){
-      // Please add com.apple.developer.kernel.increased-memory-limit for iOS
-      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_MEDIUM;
-    }
-    if (type == "whisper_large_v3_turbo"){
-      // Please add com.apple.developer.kernel.increased-memory-limit for iOS
-      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_LARGE_V3;
-    }
-    String lang = "auto"; // auto or ja
-    _ailiaSpeechModel.open(onnx_encoder_file, onnx_decoder_file, vad_file, lang, typeId);
-
-    String transcribeResult = "";
-
-      //_ailiaSpeechModel.setIntermediateCallback(_intermediateCallback);
-
-    bool oneShot = false;
-    if (oneShot){
+  String _transcribeOneShot(Wav wav){
       // One shot feed mode
+      String transcribeResult = "";
       List<double> pcm = List<double>.empty(growable: true);
 
       for (int i = 0; i < wav.channels[0].length; ++i) {
@@ -91,8 +71,13 @@ class AudioProcessingWhisper {
       for (int i = 0; i < texts.length; i++){
         transcribeResult = transcribeResult + texts[i].text;
       }
-    }else{
+
+      return transcribeResult;
+  }
+
+  String _transcribeStep(Wav wav){
       // chunk feed mode
+      String transcribeResult = "";
       int chunkSize = wav.samplesPerSecond;
       for (int t = 0; t < wav.channels[0].length; t += chunkSize){
         List<double> pcm = List<double>.empty(growable: true);
@@ -113,7 +98,50 @@ class AudioProcessingWhisper {
           transcribeResult = transcribeResult + texts[i].text;
         }
       }
+
+      return transcribeResult;
+  }
+
+  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type) async{
+    bool virtualMemory = false;
+    _ailiaSpeechModel.create(false, false, env_id, virtualMemory:virtualMemory);
+    int typeId = 0;
+    if (type == "whisper_tiny"){
+      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_TINY;
     }
+    if (type == "whisper_small"){
+      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_SMALL;
+    }
+    if (type == "whisper_medium"){
+      // Please add com.apple.developer.kernel.increased-memory-limit for iOS
+      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_MEDIUM;
+    }
+    if (type == "whisper_large_v3_turbo" || type == "whisper_large_v3_turbo_with_virtual_memory"){
+      // Please add com.apple.developer.kernel.increased-memory-limit for iOS
+      typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_LARGE_V3;
+    }
+    if (type == "whisper_large_v3_turbo_with_virtual_memory"){
+      virtualMemory = true;
+    }
+    if (virtualMemory){
+      Directory path = await getTemporaryDirectory();
+      AiliaModel.setTemporaryCachePath(path.path);
+    }
+    String lang = "auto"; // auto or ja
+    _ailiaSpeechModel.open(onnx_encoder_file, onnx_decoder_file, vad_file, lang, typeId);
+
+    String transcribeResult = "";
+
+    //_ailiaSpeechModel.setIntermediateCallback(_intermediateCallback);
+
+    int startTime = DateTime.now().millisecondsSinceEpoch;
+
+    //transcribeResult = _transcribeOneShot(wav);
+    transcribeResult = _transcribeStep(wav);
+
+    int endTime = DateTime.now().millisecondsSinceEpoch;
+
+    transcribeResult = transcribeResult + "\nprocessing time : ${(endTime - startTime) / 1000} sec for ${(wav.channels[0].length / wav.samplesPerSecond)} sec audio.";
 
     _ailiaSpeechModel.close();
 
