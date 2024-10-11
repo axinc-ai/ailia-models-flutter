@@ -105,6 +105,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _displayDownloadProgress(progress){
+    setState(() {
+      predict_result = "Downloading... ${progress ~/ 1024 ~/ 1024} MB";
+    });
+  }
+
   void _displayDownloadEnd(){
     setState(() {
       predict_result = "Download success.";
@@ -168,6 +174,10 @@ class _MyHomePageState extends State<MyHomePage> {
           }else{
             downloadModelFromModelList(downloadCnt, modelList, callback);
           }
+        }, (progress) {
+          setState(() {
+            predict_result = "Downloading ${modelList[downloadCnt + 1]} ${progress ~/ 1024 ~/ 1024} MB";
+          });
         }
     );
   }
@@ -299,7 +309,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               }
             );
-        });
+        }, _displayDownloadProgress);
       }
     );
   }
@@ -342,8 +352,8 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           predict_result = "$text1 vs $text2 sim $sim1\n$text1 vs $text3 sim $sim2\n";
         });
-      });
-    });
+      }, _displayDownloadProgress);
+    }, _displayDownloadProgress);
   }
 
   void _ailiaObjectDetectionYoloX() async{
@@ -376,7 +386,7 @@ class _MyHomePageState extends State<MyHomePage> {
             setState(() {
               predict_result = resultSubText;
             });
-        });
+        }, _displayDownloadProgress);
       }
     );
   }
