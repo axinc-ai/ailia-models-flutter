@@ -14,6 +14,7 @@ import 'package:path/path.dart';
 // mic
 import 'package:mic_stream/mic_stream.dart';
 import 'package:ailia_speech/ailia_speech_model.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // image
 import 'dart:ui' as ui;
@@ -394,6 +395,8 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
         listener!.cancel();
         listener = null;
       }
+
+      await Permission.microphone.request();
 
       int sampleRate = 44100;
       stream = MicStream.microphone(audioSource: AudioSource.DEFAULT, sampleRate: sampleRate, channelConfig: ChannelConfig.CHANNEL_IN_MONO, audioFormat: AudioFormat.ENCODING_PCM_16BIT);
