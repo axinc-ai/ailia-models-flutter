@@ -5,15 +5,19 @@ import 'package:flutter/services.dart'; //rootBundle
 import 'package:flutter/widgets.dart';
 import 'dart:async'; //Future
 import 'package:path_provider/path_provider.dart';
-import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia_model.dart';
 import 'package:ailia/ailia_license.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart';
 
+// mic
+import 'package:mic_stream/mic_stream.dart';
+import 'package:ailia_speech/ailia_speech_model.dart';
+
 // image
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 // ai models
 import 'utils/download_model.dart';
@@ -326,21 +330,75 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     );
   }
 
+  AudioProcessingWhisper whisper = AudioProcessingWhisper();
+  Stream<Uint8List>? stream = null;
+  StreamSubscription? listener = null;
+  String mic_volume = "";
+
+  void _intermediateCallback(List<SpeechText> text){
+      setState(() {
+        predict_result = text[0].text;
+      });
+  }
+
+  void _messageCallback(List<SpeechText> text){
+      setState(() {
+        predict_result = "";
+        for (int i = 0; i < text.length; i++){
+          predict_result += text[i].text;
+        }
+      });
+  }
+
+  void _finishCallback(){
+  }
+
+  void _processSamples(samples) {
+    // https://github.com/anarchuser/mic_stream/issues/94
+    List<double> result = [];
+    int UInt16Max = math.pow(2, 16).toInt();
+    for (var i = 0; i < samples.length~/2; i++) {
+      int a = samples[2*i + 1];
+      int b = samples[2*i];
+      int c = 256*a + b;
+      if (2*c > UInt16Max) {
+        c = -UInt16Max + c;
+      }
+      result.add(c / 32738.0);
+    }
+
+    setState(() {
+      mic_volume = "mic volume : ${result.reduce(math.max)}";
+    });
+
+    int sampleRate = 44100;
+    whisper.send(result, sampleRate);
+  }
+
   void _ailiaAudioProcessingWhisper(String modelType) async{
-    ByteData data = await rootBundle.load("assets/demo.wav");
-    final wav = await Wav.read(data.buffer.asUint8List());
-    AudioProcessingWhisper whisper = AudioProcessingWhisper();
     List<String> modelList = whisper.getModelList(modelType);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
       await _displayDownloadEnd();
+
+      setState(() {
+        predict_result = "Please speak to mic.";
+      });
+
       File vad_file = File(await getModelPath(modelList[1]));
       File onnx_encoder_file = File(await getModelPath(modelList[3]));
       File onnx_decoder_file = File(await getModelPath(modelList[5]));
-      String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType);
-      setState(() {
-        predict_result = text;
-      });
+      await whisper.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, _intermediateCallback, _messageCallback, _finishCallback);
+
+      if (listener != null){
+        listener!.cancel();
+        listener = null;
+      }
+
+      int sampleRate = 44100;
+      //MicStream.shouldRequestPermission(true);
+      stream = MicStream.microphone(audioSource: AudioSource.DEFAULT, sampleRate: sampleRate, channelConfig: ChannelConfig.CHANNEL_IN_STEREO, audioFormat: AudioFormat.ENCODING_PCM_16BIT);
+      listener = stream!.listen(_processSamples);
     });
   }
 
@@ -530,6 +588,9 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
             ],
             Text(
               predict_result,
+            ),
+            Text(
+              mic_volume,
             ),
           ],
         ),
