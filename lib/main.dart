@@ -337,7 +337,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
 
   void _intermediateCallback(List<SpeechText> text){
       setState(() {
-        predict_result = text[0].text;
+        predict_result = text[0].text + "...";
       });
   }
 
@@ -396,8 +396,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
       }
 
       int sampleRate = 44100;
-      //MicStream.shouldRequestPermission(true);
-      stream = MicStream.microphone(audioSource: AudioSource.DEFAULT, sampleRate: sampleRate, channelConfig: ChannelConfig.CHANNEL_IN_STEREO, audioFormat: AudioFormat.ENCODING_PCM_16BIT);
+      stream = MicStream.microphone(audioSource: AudioSource.DEFAULT, sampleRate: sampleRate, channelConfig: ChannelConfig.CHANNEL_IN_MONO, audioFormat: AudioFormat.ENCODING_PCM_16BIT);
       listener = stream!.listen(_processSamples);
     });
   }
