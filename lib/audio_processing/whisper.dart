@@ -324,6 +324,10 @@ class AudioProcessingWhisper {
     _ailiaSpeechModel.send(pcm, samplesPerSecond, 1);
   }
 
+  void terminate(){
+    _ailiaSpeechModel.terminate();
+  }
+
   void close(){
     _ailiaSpeechModel.close();
   }

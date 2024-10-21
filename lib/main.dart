@@ -335,6 +335,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   Stream<Uint8List>? stream = null;
   StreamSubscription? listener = null;
   String mic_volume = "";
+  bool terminating = false;
 
   void _intermediateCallback(List<SpeechText> text){
       setState(() {
@@ -352,6 +353,11 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   }
 
   void _finishCallback(){
+    whisper.close();
+    setState(() {
+      predict_result = "You can run new whisper instance.";
+    });
+    terminating = false;
   }
 
   void _processSamples(samples) {
@@ -389,14 +395,26 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
       File vad_file = File(await getModelPath(modelList[1]));
       File onnx_encoder_file = File(await getModelPath(modelList[3]));
       File onnx_decoder_file = File(await getModelPath(modelList[5]));
-      await whisper.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, _intermediateCallback, _messageCallback, _finishCallback);
+
+      if (terminating){
+        return;
+      }
 
       if (listener != null){
         listener!.cancel();
         listener = null;
+        whisper.terminate();
+        setState(() {
+          predict_result = "Please wait terminate.";
+        });
+        terminating = true;
+        return;
       }
 
-      await Permission.microphone.request();
+      await whisper.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, _intermediateCallback, _messageCallback, _finishCallback);
+      if (Platform.isIOS){
+        await Permission.microphone.request();
+      }
 
       int sampleRate = 44100;
       stream = MicStream.microphone(audioSource: AudioSource.DEFAULT, sampleRate: sampleRate, channelConfig: ChannelConfig.CHANNEL_IN_MONO, audioFormat: AudioFormat.ENCODING_PCM_16BIT);
