@@ -355,7 +355,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   void _finishCallback(){
     whisper.close();
     setState(() {
-      predict_result = "You can run new whisper instance.";
+      predict_result = "Terminate success. You can run new whisper instance.";
     });
     terminating = false;
   }
@@ -411,7 +411,8 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
         return;
       }
 
-      await whisper.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, _intermediateCallback, _messageCallback, _finishCallback);
+      String lang = "ja";
+      await whisper.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, lang, _intermediateCallback, _messageCallback, _finishCallback);
       if (Platform.isIOS){
         await Permission.microphone.request();
       }

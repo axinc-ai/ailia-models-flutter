@@ -292,7 +292,7 @@ class AudioProcessingWhisper {
     return modelList;
   }
 
-  Future<void> open(File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type, Function intermediateCallback, Function messageCallback, Function finishCallback) async{
+  Future<void> open(File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type, String lang, Function intermediateCallback, Function messageCallback, Function finishCallback) async{
     bool virtualMemory = false;
     int typeId = 0;
     if (type == "whisper_tiny"){
@@ -316,7 +316,6 @@ class AudioProcessingWhisper {
       Directory path = await getTemporaryDirectory();
       AiliaModel.setTemporaryCachePath(path.path);
     }
-    String lang = "auto"; // auto or ja
     _ailiaSpeechModel.init(intermediateCallback, messageCallback, finishCallback, onnx_encoder_file, onnx_decoder_file, vad_file, typeId, false, lang, true, env_id, virtualMemory);
   }
 
