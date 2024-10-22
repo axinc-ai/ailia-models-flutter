@@ -10,6 +10,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   ailia_tokenizer
   ailia_voice
   audioplayers_windows
+  permission_handler_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

@@ -3,6 +3,8 @@ PODS:
     - Flutter
   - ailia_audio (0.0.1):
     - Flutter
+  - ailia_llm (0.0.1):
+    - Flutter
   - ailia_speech (0.0.1):
     - Flutter
   - ailia_tokenizer (0.0.1):
@@ -12,25 +14,34 @@ PODS:
   - audioplayers_darwin (0.0.1):
     - Flutter
   - Flutter (1.0.0)
+  - mic_stream (0.0.1):
+    - Flutter
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - permission_handler_apple (9.3.0):
+    - Flutter
 
 DEPENDENCIES:
   - ailia (from `.symlinks/plugins/ailia/ios`)
   - ailia_audio (from `.symlinks/plugins/ailia_audio/ios`)
+  - ailia_llm (from `.symlinks/plugins/ailia_llm/ios`)
   - ailia_speech (from `.symlinks/plugins/ailia_speech/ios`)
   - ailia_tokenizer (from `.symlinks/plugins/ailia_tokenizer/ios`)
   - ailia_voice (from `.symlinks/plugins/ailia_voice/ios`)
   - audioplayers_darwin (from `.symlinks/plugins/audioplayers_darwin/ios`)
   - Flutter (from `Flutter`)
+  - mic_stream (from `.symlinks/plugins/mic_stream/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
 
 EXTERNAL SOURCES:
   ailia:
     :path: ".symlinks/plugins/ailia/ios"
   ailia_audio:
     :path: ".symlinks/plugins/ailia_audio/ios"
+  ailia_llm:
+    :path: ".symlinks/plugins/ailia_llm/ios"
   ailia_speech:
     :path: ".symlinks/plugins/ailia_speech/ios"
   ailia_tokenizer:
@@ -41,19 +52,26 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/audioplayers_darwin/ios"
   Flutter:
     :path: Flutter
+  mic_stream:
+    :path: ".symlinks/plugins/mic_stream/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
 
 SPEC CHECKSUMS:
-  ailia: 37774b5dfd9d4f3f1210d24c4865d1ec60c129bf
-  ailia_audio: 6640642df6b80c6157aa012831e49b2628e048f1
-  ailia_speech: 1b165dc4dc4846b7f12d39e2378f4173de9e91c3
-  ailia_tokenizer: f3ab0f73a9c93030a0fa6a3ae003c78e0a26d948
-  ailia_voice: e85dbbf35881dee44d8975931ac4ed39f9c23d5c
+  ailia: dfd9d82d32f8858e00de4dfbbd215f055b9f1846
+  ailia_audio: 5d473878c872e2adea458b313d87ec39fafe2939
+  ailia_llm: 4821657054a82884d0282b2e361b8fe58018dfb4
+  ailia_speech: 0141beec68eb0296b1faee725958e516152eaa8d
+  ailia_tokenizer: 4ef32d01e2e47fff31851673d5a104cd52e407e0
+  ailia_voice: e1e4de56e23fde371980c529efc2ec740655d479
   audioplayers_darwin: 877d9a4d06331c5c374595e46e16453ac7eafa40
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  mic_stream: 28787bfcfcfc68e17fad15050baf5929f1d10901
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
 
-PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
+PODFILE CHECKSUM: 149c2aef65f906a80c3092dea80bc4c5514f3ddd
 
 COCOAPODS: 1.15.2

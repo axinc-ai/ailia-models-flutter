@@ -12,6 +12,7 @@ import ailia_speech
 import ailia_tokenizer
 import ailia_voice
 import audioplayers_darwin
+import mic_stream
 import path_provider_foundation
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
@@ -22,5 +23,6 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AiliaTokenizerPlugin.register(with: registry.registrar(forPlugin: "AiliaTokenizerPlugin"))
   AiliaVoicePlugin.register(with: registry.registrar(forPlugin: "AiliaVoicePlugin"))
   AudioplayersDarwinPlugin.register(with: registry.registrar(forPlugin: "AudioplayersDarwinPlugin"))
+  MicStreamPlugin.register(with: registry.registrar(forPlugin: "MicStreamPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
 }

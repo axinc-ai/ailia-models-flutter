@@ -47,5 +47,7 @@
 	</array>
 	<key>FLTEnableImpeller</key>
 	<false />
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access required</string>
 </dict>
 </plist>
