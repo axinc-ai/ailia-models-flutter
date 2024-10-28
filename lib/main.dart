@@ -109,6 +109,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     case "whisper_tiny":
     case "whisper_small":
     case "whisper_medium":
+    case "whisper_medium_with_virtual_memory":
     case "whisper_large_v3_turbo":
     case "whisper_large_v3_turbo_with_virtual_memory":
       _ailiaAudioProcessingWhisper(isSelectedItem!);
@@ -543,6 +544,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     modelList.add('whisper_tiny');
     modelList.add('whisper_small');
     modelList.add('whisper_medium');
+    modelList.add('whisper_medium_with_virtual_memory');
     modelList.add('whisper_large_v3_turbo');
     modelList.add('whisper_large_v3_turbo_with_virtual_memory');
     modelList.add('multilingual-e5');

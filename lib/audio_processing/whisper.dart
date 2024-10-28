@@ -274,7 +274,7 @@ class AudioProcessingWhisper {
       modelList.add("whisper");
       modelList.add("decoder_small_fix_kv_cache.opt3.onnx");
     }
-    if (type == "whisper_medium"){
+    if (type == "whisper_medium" || type == "whisper_medium_with_virtual_memory"){
       modelList.add("whisper");
       modelList.add("encoder_medium.opt3.onnx");
       modelList.add("whisper");
@@ -301,7 +301,7 @@ class AudioProcessingWhisper {
     if (type == "whisper_small"){
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_SMALL;
     }
-    if (type == "whisper_medium"){
+    if (type == "whisper_medium" || type == "whisper_medium_with_virtual_memory"){
       // Please add com.apple.developer.kernel.increased-memory-limit for iOS
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_MEDIUM;
     }
@@ -309,7 +309,7 @@ class AudioProcessingWhisper {
       // Please add com.apple.developer.kernel.increased-memory-limit for iOS
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_LARGE_V3;
     }
-    if (type == "whisper_large_v3_turbo_with_virtual_memory"){
+    if (type == "whisper_large_v3_turbo_with_virtual_memory" || type == "whisper_medium_with_virtual_memory"){
       virtualMemory = true;
     }
     if (virtualMemory){
