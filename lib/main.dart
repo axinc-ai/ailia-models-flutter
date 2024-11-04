@@ -363,15 +363,15 @@ class _MyHomePageState extends State<MyHomePage> {
     // Load image data
     final Sam2ImagePredictor sam2ImagePredictor = Sam2ImagePredictor();
     DateTime time = DateTime.now();
-    final features = await sam2ImagePredictor.setImage(image!, imageEncoder);
+    final inputImage = await _uiImageToImage(image!);
+    final features =
+        await sam2ImagePredictor.setImage(inputImage, imageEncoder);
     print('setImage: ${DateTime.now().difference(time).inMilliseconds}ms');
     time = DateTime.now();
 
-    final imageSize = Size(image!.width.toDouble(), image!.height.toDouble());
-    final output = sam2ImagePredictor.predict(
+    final maskImage = sam2ImagePredictor.predict(
       features[0],
       [features[1], features[2]],
-      imageSize,
       [500, 375],
       [1],
       promptEncoder,
@@ -380,50 +380,39 @@ class _MyHomePageState extends State<MyHomePage> {
     print('predict: ${DateTime.now().difference(time).inMilliseconds}ms');
     time = DateTime.now();
 
-    if (output == null) {
+    if (maskImage == null) {
       return;
     }
 
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/sam2.png';
 
-    img.Image maskImage = _convertToImage(output);
-    maskImage = img.copyResize(
-      maskImage,
-      width: image!.width,
-      height: image!.height,
-      interpolation: img.Interpolation.linear,
-    );
-
-    img.Image result = await _mergeImages(image!, maskImage);
+    img.Image result = await _overlayMaskImage(inputImage, maskImage);
     img.encodePngFile(filePath, result);
     print('saveImage: ${DateTime.now().difference(time).inMilliseconds}ms');
 
-    final maskUiImage = await _imgImageToUiImage(result);
+    final maskUiImage = await _imageToUiImage(result);
     setState(() {
       predict_result = 'Saved to $filePath';
       image = maskUiImage;
     });
   }
 
-  Future<img.Image> _mergeImages(ui.Image srcImage, img.Image maskImage) async {
-    final inputData =
-        await srcImage.toByteData(format: ImageByteFormat.rawRgba);
-    List src = inputData!.buffer.asUint8List().toList();
-
+  Future<img.Image> _overlayMaskImage(
+      img.Image srcImage, img.Image maskImage) async {
     final width = maskImage.width;
     final height = maskImage.height;
-    final mask = maskImage.data!.toUint8List();
-    final pixels = Uint8List(width * height * 4);
+    if (width != maskImage.width || height != maskImage.height) {
+      return srcImage;
+    }
 
+    final mask = maskImage.data!.toUint8List();
+    final pixels = srcImage.data!.toUint8List();
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         final index = (y * width + x) * 4;
-        final maskValue = mask[index] ~/ 5;
-        pixels[index] = _clamp(src[index] + maskValue, 0, 255);
-        pixels[index + 1] = _clamp(src[index + 1] + maskValue, 0, 255);
-        pixels[index + 2] = src[index + 2];
-        pixels[index + 3] = 255; // value
+        final maskValue = mask[(y * width + x) * maskImage.numChannels] ~/ 5;
+        pixels[index] = _clamp(pixels[index] + maskValue, 0, 255);
       }
     }
 
@@ -432,37 +421,26 @@ class _MyHomePageState extends State<MyHomePage> {
     return image;
   }
 
-  Future<ui.Image> _imgImageToUiImage(img.Image image) async {
+  Future<img.Image> _uiImageToImage(ui.Image image) async {
+    final inputData = await image.toByteData(format: ImageByteFormat.rawRgba);
+
+    return img.Image.fromBytes(
+      width: image.width,
+      height: image.height,
+      numChannels: 4,
+      bytes: inputData!.buffer,
+    );
+  }
+
+  Future<ui.Image> _imageToUiImage(img.Image image) async {
     final bytes = img.encodePng(image);
-    return _uint8ListToImage(Uint8List.fromList(bytes));
+    return _uint8ListToImage(bytes);
   }
 
   Future<ui.Image> _uint8ListToImage(Uint8List bytes) async {
     final completer = Completer<ui.Image>();
     ui.decodeImageFromList(bytes, completer.complete);
     return completer.future;
-  }
-
-  img.Image _convertToImage(AiliaTensor maskResult) {
-    final width = maskResult.shape.x;
-    final height = maskResult.shape.y;
-    final data = maskResult.data;
-    final pixels = Uint8List(width * height * 4);
-
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final index = (y * width + x) * 4;
-        final value = (data[y * width + x] * 255).toInt();
-        pixels[index] = value;
-        pixels[index + 1] = value;
-        pixels[index + 2] = value;
-        pixels[index + 3] = value;
-      }
-    }
-
-    final image = img.Image.fromBytes(
-        width: width, height: height, numChannels: 4, bytes: pixels.buffer);
-    return image;
   }
 
   int _clamp(int value, int min, int max) {

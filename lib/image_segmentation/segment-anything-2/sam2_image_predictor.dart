@@ -1,17 +1,27 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:ui';
+import 'package:image/image.dart';
 
 import 'package:ailia/ailia_model.dart';
 
 const imageSize = 1024;
 
 class Sam2ImagePredictor {
+  int _inputWidth = 0;
+  int _inputHeight = 0;
+
   // ignore: non_constant_identifier_names
   Future<List<AiliaTensor>> setImage(
       Image image, AiliaModel imageEncoder) async {
-    final resizedImage = await _resizeImage(image, imageSize, imageSize);
+    _inputWidth = image.width;
+    _inputHeight = image.height;
+    final resizedImage = copyResize(
+      image,
+      width: imageSize,
+      height: imageSize,
+      interpolation: Interpolation.linear,
+    );
     AiliaTensor inputTensor = await _preprocessImage(resizedImage);
 
     List<AiliaTensor> output = imageEncoder.run([inputTensor]);
@@ -70,22 +80,19 @@ class Sam2ImagePredictor {
     // return [feats[feats.length - 1], feats[0], feats[1]];
   }
 
-  AiliaTensor? predict(
+  Image? predict(
     AiliaTensor imageFeature,
     List<AiliaTensor> highResFeatures,
-    Size originalSize,
     List<double> pointCoords,
     List<int> pointLabels,
-    // boxes: Optional[np.ndarray] = None,
-    // mask_input: Optional[np.ndarray] = None,
     AiliaModel promptEncoder,
     AiliaModel maskDecoder,
   ) {
-    if (pointCoords.isEmpty) {
+    if (_inputWidth == 0 || _inputHeight == 0 || pointCoords.isEmpty) {
       return null;
     }
 
-    final promptInputs = _prepPrompts(pointCoords, pointLabels, originalSize);
+    final promptInputs = _prepPrompts(pointCoords, pointLabels);
 
     // sparse_embeddings, dense_embeddings, dense_pe = promptEncoder.run({"coords":concat_points[0], "labels":concat_points[1], "masks":mask_input_dummy, "masks_enable":masks_enable})
     final promptOutputs = promptEncoder.run(promptInputs);
@@ -115,7 +122,16 @@ class Sam2ImagePredictor {
 
     int scoreIndex = _getMaxScoreIndex(iouPred);
     AiliaTensor? mask = _getMask(masks, scoreIndex);
-    return mask;
+    if (mask == null) {
+      return null;
+    }
+    final maskImage = _convertAiliaTensorToImage(mask);
+    return copyResize(
+      maskImage,
+      width: _inputWidth,
+      height: _inputHeight,
+      interpolation: Interpolation.linear,
+    );
 
     // low_res_masks, iou_predictions, _, _  = self.forward_postprocess(masks, iou_pred, sam_tokens_out, object_score_logits)
 
@@ -170,8 +186,8 @@ class Sam2ImagePredictor {
   }
 
   List<AiliaTensor> _prepPrompts(
-      List<double> pointCoords, List<int> pointLabels, Size origHw) {
-    final coords = _transformCoords(pointCoords, origHw);
+      List<double> pointCoords, List<int> pointLabels) {
+    final coords = _transformCoords(pointCoords);
     final labels = _createAiliaTensor(
       Float32List.fromList(pointLabels.map((e) => e.toDouble()).toList()),
       pointLabels.length,
@@ -190,10 +206,10 @@ class Sam2ImagePredictor {
     return [coords, labels, maskInput, masksEnable];
   }
 
-  AiliaTensor _transformCoords(List<double> coords, Size originalSize) {
+  AiliaTensor _transformCoords(List<double> coords) {
     for (int i = 0; i < coords.length / 2; i++) {
-      coords[i * 2] = coords[i * 2] / originalSize.width * imageSize;
-      coords[i * 2 + 1] = coords[i * 2 + 1] / originalSize.height * imageSize;
+      coords[i * 2] = coords[i * 2] / _inputWidth * imageSize;
+      coords[i * 2 + 1] = coords[i * 2 + 1] / _inputHeight * imageSize;
     }
 
     return _createAiliaTensor(Float32List.fromList(coords), coords.length, 1, 1,
@@ -219,8 +235,7 @@ class Sam2ImagePredictor {
         image.height,
         3);
 
-    final data = await image.toByteData(format: ImageByteFormat.rawRgba);
-    List pixel = data!.buffer.asUint8List().toList();
+    List pixel = image.buffer.asUint8List().toList();
 
     List mean = [0.485, 0.456, 0.406];
     List std = [0.229, 0.224, 0.225];
@@ -239,25 +254,6 @@ class Sam2ImagePredictor {
     return inputTensor;
   }
 
-  Future<Image> _resizeImage(Image image, int width, int height) async {
-    final recorder = PictureRecorder();
-    final canvas = Canvas(recorder);
-    final paint = Paint();
-
-    // Draw the original image onto the canvas with the new size
-    canvas.drawImageRect(
-      image,
-      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-      Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
-      paint,
-    );
-
-    // End recording and convert to an image
-    final picture = recorder.endRecording();
-    final resizedImage = await picture.toImage(width, height);
-    return resizedImage;
-  }
-
   AiliaTensor _reshape(AiliaTensor input, int x, int y, int z, int w) {
     int length = x * y * z * w;
     if (x <= 0 || y <= 0 || z <= 0 || w <= 0 || input.data.length != length) {
@@ -266,22 +262,6 @@ class Sam2ImagePredictor {
     }
 
     return _createAiliaTensor(input.data, x, y, z, w: w);
-
-    // List<double> reshaped = List.filled(length, 0.0);
-
-    // int index = 0;
-    // for (int i = 0; i < x; i++) {
-    //   for (int j = 0; j < y; j++) {
-    //     for (int k = 0; k < z; k++) {
-    //       for (int l = 0; l < w; l++) {
-    //         reshaped[index++] =
-    //             input.data[i * y * z * w + j * z * w + k * w + l];
-    //       }
-    //     }
-    //   }
-    // }
-
-    // return _createAiliaTensor(x, y, z, 1, 4, Float32List.fromList(reshaped));
   }
 
   AiliaTensor _transpose(
@@ -390,5 +370,30 @@ class Sam2ImagePredictor {
     tensor.shape = shape;
     tensor.data = data;
     return tensor;
+  }
+
+  Image _convertAiliaTensorToImage(AiliaTensor input) {
+    final width = input.shape.x;
+    final height = input.shape.y;
+    final numChannels = input.shape.z;
+    final data = input.data;
+
+    final pixels = Uint8List(width * height * numChannels);
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final index = (y * width + x) * numChannels;
+        for (int i = 0; i < numChannels; i++) {
+          pixels[index + i] = (data[index + i] * 255).toInt();
+        }
+      }
+    }
+
+    return Image.fromBytes(
+      width: width,
+      height: height,
+      numChannels: numChannels,
+      bytes: pixels.buffer,
+    );
   }
 }
