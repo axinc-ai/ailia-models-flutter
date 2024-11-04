@@ -5,8 +5,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: a85f1445e0f9fe73df77ba332e670ccd9b72fed5
+      ref: main
+      resolved-ref: "7b153c298f8da30312c1b88da7d7bdeea1806599"
       url: "https://github.com/axinc-ai/ailia-sdk-flutter.git"
     source: git
     version: "1.4.0"
@@ -14,8 +14,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "0905b3c16b54141ed12706c0f0008ad16f4c13ec"
+      ref: main
+      resolved-ref: "8477e6a4b81335bc416e8ea80659addc3a62f5ea"
       url: "https://github.com/axinc-ai/ailia-audio-flutter.git"
     source: git
     version: "1.4.0"
@@ -23,29 +23,29 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "58e52711d434a3d823b9670f2d61bd55227d28b6"
+      ref: main
+      resolved-ref: d30b65877b0ef86e1508e9af3206214e5132a16d
       url: "https://github.com/axinc-ai/ailia-speech-flutter.git"
     source: git
-    version: "1.2.2"
+    version: "1.3.0"
   ailia_tokenizer:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "810f337d231c8702992e425233efac3ab88765a9"
+      ref: main
+      resolved-ref: a821adac454f956dd9af4577b9cbf4907d7d3d41
       url: "https://github.com/axinc-ai/ailia-tokenizer-flutter.git"
     source: git
-    version: "1.1.1"
+    version: "1.3.1"
   ailia_voice:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: c83d117e6d788cd50bc8d6432d163f73481a097c
+      ref: main
+      resolved-ref: "4f7f3866bccaccba45b81d3005795f078276a230"
       url: "https://github.com/axinc-ai/ailia-voice-flutter.git"
     source: git
-    version: "0.9.0"
+    version: "1.1.0"
   archive:
     dependency: transitive
     description:
@@ -249,26 +249,26 @@ packages:
     dependency: transitive
     description:
       name: leak_tracker
-      sha256: "78eb209deea09858f5269f5a5b02be4049535f568c07b275096836f01ea323fa"
+      sha256: "7f0df31977cb2c0b88585095d168e689669a2cc9b97c309665e3386f3e9d341a"
       url: "https://pub.dev"
     source: hosted
-    version: "10.0.0"
+    version: "10.0.4"
   leak_tracker_flutter_testing:
     dependency: transitive
     description:
       name: leak_tracker_flutter_testing
-      sha256: b46c5e37c19120a8a01918cfaf293547f47269f7cb4b0058f21531c2465d6ef0
+      sha256: "06e98f569d004c1315b991ded39924b21af84cf14cc94791b8aea337d25b57f8"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.1"
+    version: "3.0.3"
   leak_tracker_testing:
     dependency: transitive
     description:
       name: leak_tracker_testing
-      sha256: a597f72a664dbd293f3bfc51f9ba69816f84dcd403cdac7066cb3f6003f3ab47
+      sha256: "6ba465d5d76e67ddf503e1161d1f4a6bc42306f9d66ca1e8f079a47290fb06d3"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.1"
+    version: "3.0.1"
   lints:
     dependency: transitive
     description:
@@ -297,10 +297,10 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: d584fa6707a52763a52446f02cc621b077888fb63b93bbcb1143a7be5a0c0c04
+      sha256: "7687075e408b093f36e6bbf6c91878cc0d4cd10f409506f7bc996f68220b9136"
       url: "https://pub.dev"
     source: hosted
-    version: "1.11.0"
+    version: "1.12.0"
   path:
     dependency: transitive
     description:
@@ -446,10 +446,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "5c2f730018264d276c20e4f1503fd1308dfbbae39ec8ee63c5236311ac06954b"
+      sha256: "9955ae474176f7ac8ee4e989dadfb411a58c30415bcfb648fa04b2b8a03afa7f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.1"
+    version: "0.7.0"
   typed_data:
     dependency: transitive
     description:
@@ -478,10 +478,10 @@ packages:
     dependency: transitive
     description:
       name: vm_service
-      sha256: b3d56ff4341b8f182b96aceb2fa20e3dcb336b9f867bc0eafc0de10f1048e957
+      sha256: "3923c89304b715fb1eb6423f017651664a03bf5f4b29983627c4da791f74a4ec"
       url: "https://pub.dev"
     source: hosted
-    version: "13.0.0"
+    version: "14.2.1"
   wav:
     dependency: "direct main"
     description:
