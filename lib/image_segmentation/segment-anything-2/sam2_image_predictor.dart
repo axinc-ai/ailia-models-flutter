@@ -11,9 +11,10 @@ class Sam2ImagePredictor {
   int _inputWidth = 0;
   int _inputHeight = 0;
 
-  // ignore: non_constant_identifier_names
   Future<List<AiliaTensor>> setImage(
-      Image image, AiliaModel imageEncoder) async {
+    Image image,
+    AiliaModel imageEncoder,
+  ) async {
     _inputWidth = image.width;
     _inputHeight = image.height;
     final resizedImage = copyResize(
@@ -216,18 +217,6 @@ class Sam2ImagePredictor {
         dim: 3);
   }
 
-  List<AiliaTensor> _prepareBackboneFeatures(List<AiliaTensor> backboneFns) {
-    List<AiliaTensor> visionFeats = [];
-    for (int i = 0; i < backboneFns.length; i++) {
-      AiliaTensor b = backboneFns[i];
-      int z = b.data.length ~/ (b.shape.x * b.shape.y);
-      b = _reshape(b, 1, b.shape.x * b.shape.y, z, 1);
-      b = _transpose(b, 2, 0, 1);
-      visionFeats.add(b);
-    }
-    return visionFeats;
-  }
-
   Future<AiliaTensor> _preprocessImage(Image image) async {
     AiliaTensor inputTensor = _createAiliaTensor(
         Float32List(image.width * image.height * 3),
@@ -252,48 +241,6 @@ class Sam2ImagePredictor {
     }
 
     return inputTensor;
-  }
-
-  AiliaTensor _reshape(AiliaTensor input, int x, int y, int z, int w) {
-    int length = x * y * z * w;
-    if (x <= 0 || y <= 0 || z <= 0 || w <= 0 || input.data.length != length) {
-      throw ArgumentError(
-          'The total number of elements does not match the new shape.');
-    }
-
-    return _createAiliaTensor(input.data, x, y, z, w: w);
-  }
-
-  AiliaTensor _transpose(
-      AiliaTensor input, int indexX, int indexY, int indexZ) {
-    if (indexX < 0 ||
-        indexX > 3 ||
-        indexY < 0 ||
-        indexY > 3 ||
-        indexZ < 0 ||
-        indexZ > 3) {
-      throw ArgumentError(
-          'The total number of elements does not match the new shape.');
-    }
-    final originX = input.shape.x;
-    final originY = input.shape.y;
-    final originZ = input.shape.z;
-    final shape = [originX, originY, originZ];
-    final x = shape[indexX];
-    final y = shape[indexY];
-    final z = shape[indexZ];
-    List<double> transposed = List.filled(x * y * z, 0.0);
-
-    int index = 0;
-    for (int i = 0; i < x; i++) {
-      for (int j = 0; j < y; j++) {
-        for (int k = 0; k < z; k++) {
-          transposed[index++] = input.data[i * y * z + j * z + k];
-        }
-      }
-    }
-
-    return _createAiliaTensor(Float32List.fromList(transposed), x, y, z);
   }
 
   AiliaTensor _generateNormalDistribution(
