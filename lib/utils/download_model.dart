@@ -29,7 +29,7 @@ Future<String> getModelPath(String path) async {
 }
 
 Future<File?> downloadModel(
-    String url, String filename, Function(File)? downloadCallback) async {
+    String url, String filename, Function(File)? downloadCallback, Function? progressCallback) async {
   var filePath = await getModelPath(filename);
   final file = File(filePath);
   if (file.existsSync()) {
@@ -77,6 +77,7 @@ Future<File?> downloadModel(
           return;
         }
         downloaded += chunk.length;
+        progressCallback?.call(downloaded);
       },
       onDone: () async {
         stopwatch.stop();

@@ -28,6 +28,12 @@ flutter run
 |:-----------|------------:|:------------:|:------------:|:------------:|
 | [resnet18](/lib/image_classification/) | [ResNet18]( https://pytorch.org/vision/main/generated/torchvision.models.resnet18.html) | Pytorch | 1.2.8 and later | |
 
+### Large Language model
+
+| | Model | Exported From | Supported Ailia Version | Blog |
+|:-----------|------------:|:------------:|:------------:|:------------:|
+| [gemma2](/lib/large_language_model/) | [gemma-2-2b](https://huggingface.co/google/gemma-2-2b) | llama.cpp | | |
+
 ### Natural Language Processing
 
 | | Model | Exported From | Supported Ailia Version | Blog |
@@ -59,22 +65,32 @@ When integrating the ailia SDK into a new application, add the following to pubs
   ailia:
     git:
       url: https://github.com/axinc-ai/ailia-sdk-flutter.git
+      ref: main
 
   ailia_audio:
     git:
       url: https://github.com/axinc-ai/ailia-audio-flutter.git
+      ref: main
 
   ailia_tokenizer:
     git:
       url: https://github.com/axinc-ai/ailia-tokenizer-flutter.git
+      ref: main
 
   ailia_speech:
     git:
       url: https://github.com/axinc-ai/ailia-speech-flutter.git
+      ref: main
 
   ailia_voice:
     git:
       url: https://github.com/axinc-ai/ailia-voice-flutter.git
+      ref: main
+
+  ailia_llm:
+    git:
+      url: https://github.com/axinc-ai/ailia-llm-flutter.git
+      ref: main
 ```
 
 Also, for macOS, it is necessary to set com.apple.security.app-sandbox to false in macos/Runner/Release.entitlements and macos/Runner/Debug.entitlements.
