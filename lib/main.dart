@@ -92,8 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
     Directory tempDir = await getTemporaryDirectory();
     String tempPath = tempDir.path;
     var filePath = '$tempPath/$path';
-    return File(filePath).writeAsBytes(
-        buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+    return File(filePath)
+      .writeAsBytes(buffer.asUint8List(byteData.offsetInBytes, 
+    byteData.lengthInBytes));
   }
 
   Future<ui.Image> loadImageFromAssets(String path) async {
@@ -101,89 +102,88 @@ class _MyHomePageState extends State<MyHomePage> {
     return decodeImageFromList(data.buffer.asUint8List());
   }
 
-  void _displayDownloadBegin() {
+  void _displayDownloadBegin(){
     setState(() {
       predict_result = "Downloading...";
     });
   }
 
-  void _displayDownloadEnd() {
+  void _displayDownloadEnd(){
     setState(() {
       predict_result = "Download success.";
     });
   }
 
-  Future<void> _changeModel() async {
+  Future<void> _changeModel() async{
     await AiliaLicense.checkAndDownloadLicense();
 
-    switch (isSelectedItem) {
-      case "sam2":
-        _ailiaImageSegmentationSam2();
-        break;
-      case "resnet18":
-        _ailiaImageClassificationResNet18();
-        break;
-      case "whisper":
-        _ailiaAudioProcessingWhisper();
-        break;
-      case "multilingual-e5":
-        _ailiaNaturalLanguageProcessingMultilingualE5();
-        break;
-      case "yolox":
-        _ailiaObjectDetectionYoloX();
-        break;
-      case "fugumt-en-ja":
-        _ailiaNaturalLanguageProcessingFuguMTEnJa();
-        break;
-      case "fugumt-ja-en":
-        _ailiaNaturalLanguageProcessingFuguMTJaEn();
-        break;
-      case "tacotron2":
-        _ailiaTextToSpeechTactoron2();
-        break;
-      case "gpt-sovits-ja":
-        _ailiaTextToSpeechGPTSoVITS_JA();
-        break;
-      case "gpt-sovits-en":
-        _ailiaTextToSpeechGPTSoVITS_EN();
-        break;
-      default:
-        throw (Exception("Unknown model type"));
+    switch (isSelectedItem){
+    case "sam2":
+      _ailiaImageSegmentationSam2();
+      break;
+    case "resnet18":
+      _ailiaImageClassificationResNet18();
+      break;
+    case "whisper":
+      _ailiaAudioProcessingWhisper();
+      break;
+    case "multilingual-e5":
+      _ailiaNaturalLanguageProcessingMultilingualE5();
+      break;
+    case "yolox":
+      _ailiaObjectDetectionYoloX();
+      break;
+    case "fugumt-en-ja":
+      _ailiaNaturalLanguageProcessingFuguMTEnJa();
+      break;
+    case "fugumt-ja-en":
+      _ailiaNaturalLanguageProcessingFuguMTJaEn();
+      break;
+    case "tacotron2":
+      _ailiaTextToSpeechTactoron2();
+      break;
+    case "gpt-sovits-ja":
+      _ailiaTextToSpeechGPTSoVITS_JA();
+      break;
+    case "gpt-sovits-en":
+      _ailiaTextToSpeechGPTSoVITS_EN();
+      break;
+    default:
+      throw(Exception("Unknown model type"));
     }
   }
 
-  void downloadModelFromModelList(
-      int downloadCnt, List<String> modelList, Function callback) {
+  void downloadModelFromModelList(int downloadCnt, List<String> modelList, Function callback){
     String filename = basename(modelList[downloadCnt + 1]);
-    String url =
-        "https://storage.googleapis.com/ailia-models/${modelList[downloadCnt + 0]}/$filename";
+    String url = "https://storage.googleapis.com/ailia-models/${modelList[downloadCnt + 0]}/$filename";
     setState(() {
       predict_result = "Downloading ${modelList[downloadCnt + 1]}";
     });
-    downloadModel(url, modelList[downloadCnt + 1], (file) {
-      downloadCnt = downloadCnt + 2;
-      if (downloadCnt >= modelList.length) {
-        callback();
-      } else {
-        downloadModelFromModelList(downloadCnt, modelList, callback);
-      }
-    });
+    downloadModel(
+        url,
+        modelList[downloadCnt + 1], (file) {
+          downloadCnt = downloadCnt + 2;
+          if (downloadCnt >= modelList.length){
+            callback();
+          }else{
+            downloadModelFromModelList(downloadCnt, modelList, callback);
+          }
+        }
+    );
   }
 
-  void _ailiaNaturalLanguageProcessingFuguMTEnJa() {
+  void _ailiaNaturalLanguageProcessingFuguMTEnJa(){
     NaturalLanguageProcessingFuguMT fuguMT = NaturalLanguageProcessingFuguMT();
     List<String> modelList = fuguMT.getModelList(false);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
-      File encoderFile =
-          File(await getModelPath("fugumt-en-ja/seq2seq-lm-with-past.onnx"));
+      File encoderFile = File(await getModelPath("fugumt-en-ja/seq2seq-lm-with-past.onnx"));
       File? decoderFile = null;
       File sourceFile = File(await getModelPath("fugumt-en-ja/source.spm"));
       File targetFile = File(await getModelPath("fugumt-en-ja/target.spm"));
 
       String targetText = "Hello world.";
-      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile,
-          sourceFile, targetFile, false, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, false, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
 
       setState(() {
         predict_result = "${targetText} -> ${outputText}";
@@ -191,21 +191,18 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _ailiaNaturalLanguageProcessingFuguMTJaEn() {
+  void _ailiaNaturalLanguageProcessingFuguMTJaEn(){
     NaturalLanguageProcessingFuguMT fuguMT = NaturalLanguageProcessingFuguMT();
     List<String> modelList = fuguMT.getModelList(true);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
-      File encoderFile =
-          File(await getModelPath("fugumt-ja-en/encoder_model.onnx"));
-      File decoderFile =
-          File(await getModelPath("fugumt-ja-en/decoder_model.onnx"));
+      File encoderFile = File(await getModelPath("fugumt-ja-en/encoder_model.onnx"));
+      File decoderFile = File(await getModelPath("fugumt-ja-en/decoder_model.onnx"));
       File sourceFile = File(await getModelPath("fugumt-ja-en/source.spm"));
       File targetFile = File(await getModelPath("fugumt-ja-en/target.spm"));
 
       String targetText = "こんにちは世界。";
-      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile,
-          sourceFile, targetFile, true, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+      String outputText = fuguMT.translate(targetText, encoderFile, decoderFile, sourceFile, targetFile, true, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
 
       setState(() {
         predict_result = "${targetText} -> ${outputText}";
@@ -213,10 +210,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _ailiaTextToSpeechTactoron2() {
+  void _ailiaTextToSpeechTactoron2(){
     TextToSpeech textToSpeech = TextToSpeech();
-    List<String> modelList =
-        textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_TACOTRON2);
+    List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_TACOTRON2);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
       String encoderFile = await getModelPath("encoder.onnx");
@@ -228,17 +224,7 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp$_counter.wav");
-      await textToSpeech.inference(
-          targetText,
-          outputPath,
-          encoderFile,
-          decoderFile,
-          postnetFile,
-          waveglowFile,
-          sslFile,
-          dicFolder,
-          null,
-          TextToSpeech.MODEL_TYPE_TACOTRON2);
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_TACOTRON2);
 
       setState(() {
         predict_result = "finish";
@@ -246,10 +232,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _ailiaTextToSpeechGPTSoVITS_JA() {
+  void _ailiaTextToSpeechGPTSoVITS_JA(){
     TextToSpeech textToSpeech = TextToSpeech();
-    List<String> modelList =
-        textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
+    List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
       String encoderFile = await getModelPath("t2s_encoder.onnx");
@@ -261,17 +246,7 @@ class _MyHomePageState extends State<MyHomePage> {
       String dicFolder = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp$_counter.wav");
-      await textToSpeech.inference(
-          targetText,
-          outputPath,
-          encoderFile,
-          decoderFile,
-          postnetFile,
-          waveglowFile,
-          sslFile,
-          dicFolder,
-          null,
-          TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolder, null, TextToSpeech.MODEL_TYPE_GPT_SOVITS_JA);
 
       setState(() {
         predict_result = "finish";
@@ -279,10 +254,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _ailiaTextToSpeechGPTSoVITS_EN() {
+  void _ailiaTextToSpeechGPTSoVITS_EN(){
     TextToSpeech textToSpeech = TextToSpeech();
-    List<String> modelList =
-        textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
+    List<String> modelList = textToSpeech.getModelList(TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
       String encoderFile = await getModelPath("t2s_encoder.onnx");
@@ -291,22 +265,11 @@ class _MyHomePageState extends State<MyHomePage> {
       String waveglowFile = await getModelPath("vits.onnx");
       String sslFile = await getModelPath("cnhubert.onnx");
 
-      String dicFolderOpenJtalk =
-          await getModelPath("open_jtalk_dic_utf_8-1.11/");
+      String dicFolderOpenJtalk = await getModelPath("open_jtalk_dic_utf_8-1.11/");
       String dicFolderEn = await getModelPath("/");
       String targetText = "Hello world.";
       String outputPath = await getModelPath("temp$_counter.wav");
-      await textToSpeech.inference(
-          targetText,
-          outputPath,
-          encoderFile,
-          decoderFile,
-          postnetFile,
-          waveglowFile,
-          sslFile,
-          dicFolderOpenJtalk,
-          dicFolderEn,
-          TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
+      await textToSpeech.inference(targetText, outputPath, encoderFile, decoderFile, postnetFile, waveglowFile, sslFile, dicFolderOpenJtalk, dicFolderEn, TextToSpeech.MODEL_TYPE_GPT_SOVITS_EN);
 
       setState(() {
         predict_result = "finish";
@@ -451,46 +414,42 @@ class _MyHomePageState extends State<MyHomePage> {
             : value;
   }
 
-  void _ailiaImageClassificationResNet18() {
+  void _ailiaImageClassificationResNet18(){
     // Load image
-    loadImageFromAssets("assets/clock.jpg").then((imageAsync) {
-      image = imageAsync;
-      setState(() {
-        // apply to ui (call build)
-        isImageloaded = true;
-      });
-
-      // Download onnx
-      _displayDownloadBegin();
-      downloadModel(
-          "https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx",
-          "resnet18.onnx", (onnx_file) {
-        _displayDownloadEnd();
-        // Load image data
-        image!.toByteData(format: ui.ImageByteFormat.rawRgba).then((data) {
-          ailiaEnvironmentSample();
-          setState(() {
-            predict_result = ailiaPredictSample(onnx_file, data!);
-          });
+    loadImageFromAssets("assets/clock.jpg").then(
+      (imageAsync) {
+        image = imageAsync;
+        setState(() { // apply to ui (call build)
+          isImageloaded = true;
         });
-      });
-    });
+
+        // Download onnx
+        _displayDownloadBegin();
+        downloadModel("https://storage.googleapis.com/ailia-models/resnet18/resnet18.onnx", "resnet18.onnx", (onnx_file) {
+            _displayDownloadEnd();
+            // Load image data
+            image!.toByteData(format: ui.ImageByteFormat.rawRgba).then(
+              (data){
+                ailiaEnvironmentSample();
+                setState(() {
+                  predict_result = ailiaPredictSample(onnx_file, data!);
+                });
+              }
+            );
+        });
+      }
+    );
   }
 
-  void _ailiaAudioProcessingWhisper() async {
+  void _ailiaAudioProcessingWhisper() async{
     ByteData data = await rootBundle.load("assets/demo.wav");
     final wav = await Wav.read(data.buffer.asUint8List());
     _displayDownloadBegin();
-    downloadModel(
-        "https://storage.googleapis.com/ailia-models/whisper/encoder_tiny.opt3.onnx",
-        "encoder_tiny.opt3.onnx", (onnx_encoder_file) {
-      downloadModel(
-          "https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx",
-          "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
+    downloadModel("https://storage.googleapis.com/ailia-models/whisper/encoder_tiny.opt3.onnx", "encoder_tiny.opt3.onnx", (onnx_encoder_file) {
+      downloadModel("https://storage.googleapis.com/ailia-models/whisper/decoder_tiny_fix_kv_cache.opt3.onnx", "decoder_tiny_fix_kv_cache.opt3.onnx", (onnx_decoder_file) async {
         _displayDownloadEnd();
         AudioProcessingWhisper whisper = AudioProcessingWhisper();
-        String text = await whisper.transcribe(wav, onnx_encoder_file,
-            onnx_decoder_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+        String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
         setState(() {
           predict_result = text;
         });
@@ -498,18 +457,13 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _ailiaNaturalLanguageProcessingMultilingualE5() async {
+  void _ailiaNaturalLanguageProcessingMultilingualE5() async{
     _displayDownloadBegin();
-    downloadModel(
-        "https://storage.googleapis.com/ailia-models/multilingual-e5/multilingual-e5-base.onnx",
-        "multilingual-e5-base.onnx", (onnx_file) {
-      downloadModel(
-          "https://storage.googleapis.com/ailia-models/multilingual-e5/sentencepiece.bpe.model",
-          "sentencepiece.bpe.model", (spe_file) async {
+    downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/multilingual-e5-base.onnx", "multilingual-e5-base.onnx", (onnx_file) {
+      downloadModel("https://storage.googleapis.com/ailia-models/multilingual-e5/sentencepiece.bpe.model", "sentencepiece.bpe.model", (spe_file) async {
         print("Download model success");
         _displayDownloadEnd();
-        NaturalLanguageProcessingMultilingualE5 e5 =
-            NaturalLanguageProcessingMultilingualE5();
+        NaturalLanguageProcessingMultilingualE5 e5 = NaturalLanguageProcessingMultilingualE5();
         e5.open(onnx_file, spe_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
         String text1 = "Hello.";
         String text2 = "こんにちは。";
@@ -521,51 +475,47 @@ class _MyHomePageState extends State<MyHomePage> {
         double sim2 = e5.cosSimilarity(embedding1, embedding3);
         e5.close();
         setState(() {
-          predict_result =
-              "$text1 vs $text2 sim $sim1\n$text1 vs $text3 sim $sim2\n";
+          predict_result = "$text1 vs $text2 sim $sim1\n$text1 vs $text3 sim $sim2\n";
         });
       });
     });
   }
 
-  void _ailiaObjectDetectionYoloX() async {
+  void _ailiaObjectDetectionYoloX() async{
     // Load image
     ByteData imData = await rootBundle.load("assets/clock.jpg");
-    loadImageFromAssets("assets/clock.jpg").then((imageAsync) {
-      image = imageAsync;
-      setState(() {
-        // apply to ui (call build)
-        isImageloaded = true;
-      });
-
-      // Download onnx
-      _displayDownloadBegin();
-      downloadModel(
-          "https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx",
-          "yolox_s.opt.onnx", (onnx_file) {
-        _displayDownloadEnd();
-        ObjectDetectionYoloX yolox = ObjectDetectionYoloX();
-        yolox.open(onnx_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
-
-        final image = img.decodeImage(imData.buffer.asUint8List())!;
-        final width = image.width;
-        final height = image.height;
-        final imageWithoutAlpha = image.convert(numChannels: 3);
-        final buffer = imageWithoutAlpha.getBytes(order: img.ChannelOrder.rgb);
-
-        String resultSubText;
-        final res = yolox.run(buffer, width, height);
-        resultSubText = res
-            .map((e) =>
-                "x:${e.x} y:${e.y} w:${e.w} h:${e.h} p:${e.prob} label:${yolox.category[e.category]}")
-            .join("\n");
-
-        setState(() {
-          predict_result = resultSubText;
+    loadImageFromAssets("assets/clock.jpg").then(
+      (imageAsync) {
+        image = imageAsync;
+        setState(() { // apply to ui (call build)
+          isImageloaded = true;
         });
-      });
-    });
+
+        // Download onnx
+        _displayDownloadBegin();
+        downloadModel("https://storage.googleapis.com/ailia-models/yolox/yolox_s.opt.onnx", "yolox_s.opt.onnx", (onnx_file) {
+            _displayDownloadEnd();
+            ObjectDetectionYoloX yolox = ObjectDetectionYoloX();
+            yolox.open(onnx_file, ailia_dart.AILIA_ENVIRONMENT_ID_AUTO);
+
+            final image = img.decodeImage(imData.buffer.asUint8List())!;
+            final width = image.width;
+            final height = image.height;
+            final imageWithoutAlpha = image.convert(numChannels: 3);
+            final buffer = imageWithoutAlpha.getBytes(order: img.ChannelOrder.rgb);
+
+            String resultSubText;
+            final res = yolox.run(buffer, width, height);
+            resultSubText = res.map((e) => "x:${e.x} y:${e.y} w:${e.w} h:${e.h} p:${e.prob} label:${yolox.category[e.category]}").join("\n");
+
+            setState(() {
+              predict_result = resultSubText;
+            });
+        });
+      }
+    );
   }
+
 
   void _incrementCounter() async {
     await _changeModel();
@@ -586,20 +536,18 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildImage() {
     if (this.isImageloaded && image != null) {
       return new CustomPaint(
-        painter: new ImageEditor(image: image!),
-      );
+          painter: new ImageEditor(image: image!),
+        );
     } else {
       return new Center(child: new Text(''));
     }
   }
-
+  
   String? isSelectedItem = 'resnet18';
 
   @override
   Widget build(BuildContext context) {
-    bool isImage = isSelectedItem == 'resnet18' ||
-        isSelectedItem == 'yolox' ||
-        isSelectedItem == 'sam2';
+    bool isImage = isSelectedItem == 'resnet18' || isSelectedItem == 'yolox';
 
     return Scaffold(
       appBar: AppBar(
@@ -622,10 +570,6 @@ class _MyHomePageState extends State<MyHomePage> {
               //4
               items: const [
                 //5
-                DropdownMenuItem(
-                  child: Text('sam2'),
-                  value: 'sam2',
-                ),
                 DropdownMenuItem(
                   child: Text('resnet18'),
                   value: 'resnet18',
@@ -672,7 +616,7 @@ class _MyHomePageState extends State<MyHomePage> {
               //7
               value: isSelectedItem,
             ),
-            if (isImage) ...[
+            if (isImage) ...[ 
               new Container(
                 width: 224,
                 height: 224,
@@ -703,7 +647,7 @@ class ImageEditor extends CustomPainter {
 
   @override
   void paint(Canvas canvas, ui.Size size) {
-    if (image != null) {
+    if (image != null){
       canvas.drawImage(image!, new Offset(0.0, 0.0), new Paint());
     }
   }
@@ -712,4 +656,5 @@ class ImageEditor extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) {
     return false;
   }
+
 }
