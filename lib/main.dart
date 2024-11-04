@@ -339,16 +339,13 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
 
     AiliaModel imageEncoder = AiliaModel();
     imageEncoder.openFile(imageEncoderModelFile.path,
-        envId: selectedEnvId,
-        memoryMode: AILIA_MEMORY_REDUCE_INTERSTAGE);
+        envId: selectedEnvId, memoryMode: 11);
     AiliaModel promptEncoder = AiliaModel();
     promptEncoder.openFile(promptEncoderModelFile.path,
-        envId: selectedEnvId,
-        memoryMode: AILIA_MEMORY_REDUCE_INTERSTAGE);
+        envId: selectedEnvId, memoryMode: 11);
     AiliaModel maskEncoder = AiliaModel();
     maskEncoder.openFile(maskEncoderModelFile.path,
-        envId: selectedEnvId,
-        memoryMode: AILIA_MEMORY_REDUCE_INTERSTAGE);
+        envId: selectedEnvId, memoryMode: 11);
 
     // Load image data
     final Sam2ImagePredictor sam2ImagePredictor = Sam2ImagePredictor();
