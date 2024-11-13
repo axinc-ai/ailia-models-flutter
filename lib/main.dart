@@ -318,9 +318,9 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
 
     const remotePath =
         'https://storage.googleapis.com/ailia-models/segment-anything-2/';
-    const imageEncoderModel = 'image_encoder_hiera_l.onnx';
-    const promptEncoderModel = 'prompt_encoder_hiera_l.onnx';
-    const maskEncoderModel = 'mask_decoder_hiera_l.onnx';
+    const imageEncoderModel = 'image_encoder_hiera_t.onnx';
+    const promptEncoderModel = 'prompt_encoder_hiera_t.onnx';
+    const maskEncoderModel = 'mask_decoder_hiera_t.onnx';
 
     final imageEncoderModelFile = await downloadModel(
         '$remotePath$imageEncoderModel', imageEncoderModel, null, null);

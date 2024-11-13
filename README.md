@@ -28,6 +28,12 @@ flutter run
 |:-----------|------------:|:------------:|:------------:|:------------:|
 | [resnet18](/lib/image_classification/) | [ResNet18]( https://pytorch.org/vision/main/generated/torchvision.models.resnet18.html) | Pytorch | 1.2.8 and later | |
 
+### Image Segmentation
+
+| | Model | Exported From | Supported Ailia Version | Blog |
+|:-----------|------------:|:------------:|:------------:|:------------:|
+| [sam2](/lib/image_segmentation/segment-anything-2) | [Segment Anything 2](https://github.com/facebookresearch/sam2) | Pytorch | 1.2.8 and later | |
+
 ### Large Language model
 
 | | Model | Exported From | Supported Ailia Version | Blog |
