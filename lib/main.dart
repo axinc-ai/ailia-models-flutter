@@ -583,11 +583,18 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   ui.Image? image = null;
   bool isImageloaded = false;
 
-  Widget _buildImage() {
-    if (this.isImageloaded && image != null) {
-      return new CustomPaint(
-          painter: new ImageEditor(image: image!),
-        );
+  Widget _buildImage(BuildContext context) {
+    if (isImageloaded && image != null) {
+      double screenHeight = MediaQuery.of(context).size.height;
+      double height = screenHeight * 0.5;
+      double width = height * image!.width / image!.height;
+      return SizedBox(
+        width: width,
+        height: height,
+        child: CustomPaint(
+          painter: ImageEditor(image: image!),
+        ),
+      );
     } else {
       return new Center(child: new Text(''));
     }
@@ -605,8 +612,8 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     }
 
     List<String> modelList = [];
-    modelList.add('sam2');
     modelList.add('resnet18');
+    modelList.add('sam2');
     modelList.add('whisper_tiny');
     modelList.add('whisper_small');
     modelList.add('whisper_medium');
@@ -667,13 +674,8 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
               },
               value: isSelectedItem,
             ),
-            if (isImage) ...[ 
-              new Container(
-                width: 224,
-                height: 224,
-                child: _buildImage(),
-              ),
-            ],
+            if (isImage) 
+              _buildImage(context),
             Text(
               predict_result,
             ),
@@ -691,16 +693,16 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
 
 class ImageEditor extends CustomPainter {
   ImageEditor({
-    this.image,
+    required this.image,
   });
 
-  ui.Image? image;
+  ui.Image image;
 
   @override
   void paint(Canvas canvas, ui.Size size) {
-    if (image != null){
-      canvas.drawImage(image!, new Offset(0.0, 0.0), new Paint());
-    }
+    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final dst = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.drawImageRect(image, src, dst, Paint());
   }
 
   @override
