@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:ailia/ailia.dart';
 import 'package:ailia/ailia_model.dart';
-import 'package:ailia_models_flutter/image_segmentation/segment-anything-2/sam2_image_predictor.dart';
 import 'package:flutter/material.dart';
 
 // assets
@@ -21,6 +20,7 @@ import 'package:path/path.dart';
 import 'dart:ui' as ui;
 
 // ai models
+import 'image_segmentation/segment-anything-2/segment_image.dart';
 import 'utils/download_model.dart';
 import 'image_classification/image_classification_sample.dart';
 import 'audio_processing/whisper.dart';
@@ -337,35 +337,23 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
       return;
     }
 
-    AiliaModel imageEncoder = AiliaModel();
-    imageEncoder.openFile(imageEncoderModelFile.path,
-        envId: selectedEnvId, memoryMode: 11);
-    AiliaModel promptEncoder = AiliaModel();
-    promptEncoder.openFile(promptEncoderModelFile.path,
-        envId: selectedEnvId, memoryMode: 11);
-    AiliaModel maskEncoder = AiliaModel();
-    maskEncoder.openFile(maskEncoderModelFile.path,
-        envId: selectedEnvId, memoryMode: 11);
-
+    SegmentImage segmentImage = SegmentImage();
+    segmentImage.open(imageEncoderModelFile.path, promptEncoderModelFile.path,
+        maskEncoderModelFile.path, envId: selectedEnvId);
+    
     // Load image data
-    final Sam2ImagePredictor sam2ImagePredictor = Sam2ImagePredictor();
     DateTime time = DateTime.now();
     final inputImage = await _uiImageToImage(image!);
-    final features =
-        await sam2ImagePredictor.setImage(inputImage, imageEncoder);
+    await segmentImage.setImage(inputImage);
     print('setImage: ${DateTime.now().difference(time).inMilliseconds}ms');
     time = DateTime.now();
 
-    final maskImage = sam2ImagePredictor.predict(
-      features[0],
-      [features[1], features[2]],
-      [500, 375],
-      [1],
-      promptEncoder,
-      maskEncoder,
-    );
+    // Generate mask image
+    final maskImage = segmentImage.run([img.Point(500, 375)]);
     print('predict: ${DateTime.now().difference(time).inMilliseconds}ms');
     time = DateTime.now();
+
+    segmentImage.close();
 
     if (maskImage == null) {
       return;

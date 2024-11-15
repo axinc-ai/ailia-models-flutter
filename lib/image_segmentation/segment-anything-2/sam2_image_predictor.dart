@@ -84,7 +84,7 @@ class Sam2ImagePredictor {
   Image? predict(
     AiliaTensor imageFeature,
     List<AiliaTensor> highResFeatures,
-    List<double> pointCoords,
+    List<Point> pointCoords,
     List<int> pointLabels,
     AiliaModel promptEncoder,
     AiliaModel maskDecoder,
@@ -187,7 +187,7 @@ class Sam2ImagePredictor {
   }
 
   List<AiliaTensor> _prepPrompts(
-      List<double> pointCoords, List<int> pointLabels) {
+      List<Point> pointCoords, List<int> pointLabels) {
     final coords = _transformCoords(pointCoords);
     final labels = _createAiliaTensor(
       Float32List.fromList(pointLabels.map((e) => e.toDouble()).toList()),
@@ -207,13 +207,16 @@ class Sam2ImagePredictor {
     return [coords, labels, maskInput, masksEnable];
   }
 
-  AiliaTensor _transformCoords(List<double> coords) {
+  AiliaTensor _transformCoords(List<Point> coords) {
+    List<double> points = [];
     for (int i = 0; i < coords.length / 2; i++) {
-      coords[i * 2] = coords[i * 2] / _inputWidth * imageSize;
-      coords[i * 2 + 1] = coords[i * 2 + 1] / _inputHeight * imageSize;
+      double x = coords[i].x / _inputWidth * imageSize;
+      double y = coords[i].y / _inputHeight * imageSize;
+      points.add(x);
+      points.add(y);
     }
 
-    return _createAiliaTensor(Float32List.fromList(coords), coords.length, 1, 1,
+    return _createAiliaTensor(Float32List.fromList(points), points.length, 1, 1,
         dim: 3);
   }
 
