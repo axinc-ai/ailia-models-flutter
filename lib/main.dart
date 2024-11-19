@@ -386,7 +386,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         final index = (y * width + x) * 4;
-        final maskValue = mask[(y * width + x) * maskImage.numChannels] ~/ 5;
+        final maskValue = mask[(y * width + x) * maskImage.numChannels + maskImage.numChannels - 1] ~/ 5;
         pixels[index] = _clamp(pixels[index] + maskValue, 0, 255);
       }
     }

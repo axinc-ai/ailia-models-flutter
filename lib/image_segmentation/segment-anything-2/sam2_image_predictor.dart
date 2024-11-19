@@ -328,21 +328,19 @@ class Sam2ImagePredictor {
     final numChannels = input.shape.z;
     final data = input.data;
 
-    final pixels = Uint8List(width * height * numChannels);
+    final pixels = Uint8List(width * height * 4);
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
-        final index = (y * width + x) * numChannels;
-        for (int i = 0; i < numChannels; i++) {
-          pixels[index + i] = (data[index + i] * 255).toInt();
-        }
+        final index = (y * width + x);
+        pixels[index * 4 + 3] = (data[index * numChannels] * 255).toInt();
       }
     }
 
     return Image.fromBytes(
       width: width,
       height: height,
-      numChannels: numChannels,
+      numChannels: 4,
       bytes: pixels.buffer,
     );
   }
