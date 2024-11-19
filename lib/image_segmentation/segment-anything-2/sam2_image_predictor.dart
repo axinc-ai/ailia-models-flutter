@@ -209,14 +209,14 @@ class Sam2ImagePredictor {
 
   AiliaTensor _transformCoords(List<Point> coords) {
     List<double> points = [];
-    for (int i = 0; i < coords.length / 2; i++) {
+    for (int i = 0; i < coords.length; i++) {
       double x = coords[i].x / _inputWidth * imageSize;
       double y = coords[i].y / _inputHeight * imageSize;
       points.add(x);
       points.add(y);
     }
 
-    return _createAiliaTensor(Float32List.fromList(points), points.length, 1, 1,
+    return _createAiliaTensor(Float32List.fromList(points), 2, coords.length, 1,
         dim: 3);
   }
 

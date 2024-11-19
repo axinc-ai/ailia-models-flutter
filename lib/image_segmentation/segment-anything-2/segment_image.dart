@@ -51,9 +51,14 @@ class SegmentImage {
     return true;
   }
 
-  Image? run(List<Point> pointCoords, {List<int> pointLabels = const [1]}) {
+  Image? run(List<Point> pointCoords) {
     if (_imageFeature == null || _highResFeatures == null) {
       return null;
+    }
+
+    List<int> pointLabels = [];
+    for (int i = 0; i < pointCoords.length; i++) {
+      pointLabels.add(1);
     }
 
     return _predictor.predict(
