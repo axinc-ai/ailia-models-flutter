@@ -1,260 +1,19 @@
-import 'dart:isolate';
+// Whisper Speech To Text Batch Processing
+
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:wav/wav.dart';
 
+import 'package:flutter/services.dart';
 import 'package:ailia_speech/ailia_speech.dart' as ailia_speech_dart;
 import 'package:ailia_speech/ailia_speech_model.dart';
 import 'package:ailia/ailia_model.dart';
 
-void speechToTextIsolateFunc(SendPort initialReplyTo) {
-  final receivePort = ReceivePort();
-  final interruptPort = ReceivePort();
-  initialReplyTo.send({
-    "sendPort": receivePort.sendPort,
-    "interruptPort": interruptPort.sendPort
-  });
-
-  late AiliaSpeechModel ailiaSpeechToText;
-
-  // 終了の割り込みメッセージ
-  bool interrupt = false;
-  interruptPort.listen((message) {
-    interrupt = true;
-  });
-
-  // 音声認識ジョブの処理
-  receivePort.listen((message) {
-    SendPort answerPort = message["answerPort"];
-
-    if (message["cmd"] == "initialize") {
-      ailiaSpeechToText = AiliaSpeechModel();
-      ailiaSpeechToText.create(
-        message["liveTranscribe"],
-        false,
-        message["envId"],
-        virtualMemory:message["virtualMemory"],
-      );
-      ailiaSpeechToText.open(
-        message["encoderFile"],
-        message["decoderFile"],
-        message["vadEnable"] ? message["vadFile"] : null,
-        message["language"],
-        message["modelType"],
-      );
-      return;
-    }
-
-    if (message["cmd"] == "terminate") {
-      ailiaSpeechToText.finalizeInputData();
-      while (!ailiaSpeechToText.isComplete() && interrupt == false) {
-        var result = ailiaSpeechToText.transcribe();
-        if (result.isNotEmpty) {
-          answerPort.send({
-            "intermediate": false,
-            "terminate": false,
-            "text": result,
-          });
-        }
-      }
-      ailiaSpeechToText.reset();
-      ailiaSpeechToText.close();
-      answerPort.send({
-        "intermediate": false,
-        "terminate": true,
-        "text": null,
-      });
-      return;
-    }
-
-    if (message["cmd"] == "transcribe") {
-      void intermediateCallback(textMessage) {
-        SpeechText text = SpeechText(
-          textMessage,
-          0,
-          0,
-          0,
-          0,
-        );
-        List<SpeechText> result = [text];
-        answerPort.send({
-          "intermediate": true,
-          "terminate": false,
-          "text": result,
-        });
-      }
-
-      ailiaSpeechToText.setIntermediateCallback(intermediateCallback);
-
-      ailiaSpeechToText.pushInputData(
-        message["chunk"],
-        message["sampleRate"],
-        message["channels"],
-      );
-
-      while (ailiaSpeechToText.isBuffered() && interrupt == false) {
-        var result = ailiaSpeechToText.transcribe();
-        if (result.isNotEmpty) {
-          answerPort.send({
-            "intermediate": false,
-            "terminate": false,
-            "text": result,
-          });
-        }
-      }
-      return;
-    }
-
-    print("unknown cmd");
-  });
-}
-
-class SpeechToTextIsolate {
-  late ReceivePort receivePort;
-  late Isolate isolate;
-  late SendPort sendPort;
-  late SendPort interruptPort;
-  late ReceivePort answerPort;
-  bool _isTerminateFlag = false;
-  bool _isInitializeFlag = false;
-  bool _isIntermediateFlag = false;
-  bool _isInterruptFlag = false;
-
-  Future<void> init(
-    Function intermediateCallback,
-    Function messageCallback,
-    Function finishCallback,
-    File encoderFile,
-    File decoderFile,
-    File vadFile,
-    int modelType,
-    bool liveTranscribe,
-    String language,
-    bool vadEnable,
-    int envId,
-    bool virtualMemory,
-  ) async {
-    _isTerminateFlag = false;
-    _isInterruptFlag = false;
-    receivePort = ReceivePort();
-    isolate = await Isolate.spawn(
-      speechToTextIsolateFunc,
-      receivePort.sendPort,
-    );
-    var message = await receivePort.first;
-    sendPort = message["sendPort"] as SendPort;
-    interruptPort = message["interruptPort"] as SendPort;
-    answerPort = ReceivePort();
-    answerPort.listen((message) async {
-      if (message["intermediate"] == true) {
-        _isIntermediateFlag = true;
-        intermediateCallback(message["text"]);
-      } else {
-        if (message["terminate"] == true) {
-          finishCallback();
-        } else {
-          messageCallback(message["text"]);
-        }
-      }
-    });
-
-    var args = {
-      "answerPort": answerPort.sendPort,
-      "cmd": "initialize",
-      "encoderFile": encoderFile,
-      "decoderFile": decoderFile,
-      "vadFile": vadFile,
-      "liveTranscribe": liveTranscribe,
-      "language": language,
-      "modelType": modelType,
-      "vadEnable": vadEnable,
-      "envId": envId,
-      "virtualMemory": virtualMemory
-    };
-    sendPort.send(args);
-
-    _isInitializeFlag = true;
-    _isIntermediateFlag = false;
-  }
-
-  void send(List<double> chunk, int sampleRate, int channels) {
-    if (!_isInitializeFlag) {
-      print("Warning : send : not initialized");
-      return;
-    }
-
-    // 音声認識が長時間CPUを使わないようにメッセージを1秒ごとに分割する
-    int chunkSize = sampleRate;
-    for (int i = 0; i < chunk.length; i += chunkSize) {
-      final isLast = i + chunkSize >= chunk.length;
-      final end = isLast ? chunk.length : i + chunkSize;
-      var args = {
-        "answerPort": answerPort.sendPort,
-        "cmd": "transcribe",
-        "chunk": chunk.sublist(i, end),
-        "sampleRate": sampleRate,
-        "channels": channels
-      };
-      sendPort.send(args);
-    }
-  }
-
-  bool isTerminate() {
-    return _isTerminateFlag;
-  }
-
-  bool isIntermediate() {
-    return _isIntermediateFlag;
-  }
-
-  // キューを最後まで処理をして終了する
-  void terminate() {
-    if (_isTerminateFlag) {
-      return;
-    }
-    if (!_isInitializeFlag) {
-      print("Warning : terminate : not initialized");
-      return;
-    }
-    _isTerminateFlag = true;
-    var args = {
-      "answerPort": answerPort.sendPort,
-      "cmd": "terminate",
-    };
-    sendPort.send(args);
-  }
-
-  // 以降のキューの認識をスキップする
-  void interrupt() {
-    if (_isInterruptFlag) {
-      return;
-    }
-    if (!_isInitializeFlag) {
-      print("Warning : terminate : not initialized");
-      return;
-    }
-    _isInterruptFlag = true;
-    var args = {
-      "cmd": "interrupt",
-    };
-    interruptPort.send(args);
-  }
-
-  void close() {
-    if (!_isInitializeFlag) {
-      print("Warning : close : not initialized");
-      return;
-    }
-    isolate.kill();
-    receivePort.close();
-    answerPort.close();
-    _isInitializeFlag = false;
-  }
-}
-
 class AudioProcessingWhisper {
-  final SpeechToTextIsolate _ailiaSpeechModel = SpeechToTextIsolate();
+  final AiliaSpeechModel _ailiaSpeechModel = AiliaSpeechModel();
 
   List<String> getModelList(String type){
     List<String> modelList = List<String>.empty(growable: true);
@@ -274,13 +33,13 @@ class AudioProcessingWhisper {
       modelList.add("whisper");
       modelList.add("decoder_small_fix_kv_cache.opt3.onnx");
     }
-    if (type == "whisper_medium" || type == "whisper_medium_with_virtual_memory"){
+    if (type == "whisper_medium"){
       modelList.add("whisper");
       modelList.add("encoder_medium.opt3.onnx");
       modelList.add("whisper");
       modelList.add("decoder_medium_fix_kv_cache.opt3.onnx");
     }
-    if (type == "whisper_large_v3_turbo" || type == "whisper_large_v3_turbo_with_virtual_memory"){
+    if (type == "whisper_large_v3_turbo"){
       modelList.add("whisper");
       modelList.add("encoder_turbo.onnx");
       modelList.add("whisper");
@@ -292,8 +51,61 @@ class AudioProcessingWhisper {
     return modelList;
   }
 
-  Future<void> open(File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type, String lang, Function intermediateCallback, Function messageCallback, Function finishCallback) async{
-    bool virtualMemory = false;
+  void _intermediateCallback(String text){
+    print(text);
+  }
+
+  String _transcribeOneShot(Wav wav){
+      // One shot feed mode
+      String transcribeResult = "";
+      List<double> pcm = List<double>.empty(growable: true);
+
+      for (int i = 0; i < wav.channels[0].length; ++i) {
+        for (int j = 0; j < wav.channels.length; ++j){
+          pcm.add(wav.channels[j][i]);
+        }
+      }
+
+      _ailiaSpeechModel.pushInputData(pcm, wav.samplesPerSecond, wav.channels.length);
+      _ailiaSpeechModel.finalizeInputData(); // for one shot
+
+      List<SpeechText> texts = _ailiaSpeechModel.transcribeBatch();
+      for (int i = 0; i < texts.length; i++){
+        transcribeResult = transcribeResult + texts[i].text;
+      }
+
+      return transcribeResult;
+  }
+
+  String _transcribeStep(Wav wav){
+      // chunk feed mode
+      String transcribeResult = "";
+      int chunkSize = wav.samplesPerSecond;
+      for (int t = 0; t < wav.channels[0].length; t += chunkSize){
+        List<double> pcm = List<double>.empty(growable: true);
+
+        for (int i = t; i < min(t + chunkSize, wav.channels[0].length); ++i) {
+          for (int j = 0; j < wav.channels.length; ++j){
+            pcm.add(wav.channels[j][i]);
+          }
+        }
+
+        _ailiaSpeechModel.pushInputData(pcm, wav.samplesPerSecond, wav.channels.length);
+        if (t + chunkSize >= wav.channels[0].length){
+          _ailiaSpeechModel.finalizeInputData();
+        }
+
+        List<SpeechText> texts = _ailiaSpeechModel.transcribeBatch();
+        for (int i = 0; i < texts.length; i++){
+          transcribeResult = transcribeResult + texts[i].text;
+        }
+      }
+
+      return transcribeResult;
+  }
+
+  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type, bool virtualMemory) async{
+    _ailiaSpeechModel.create(false, false, env_id, virtualMemory:virtualMemory);
     int typeId = 0;
     if (type == "whisper_tiny"){
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_TINY;
@@ -301,34 +113,37 @@ class AudioProcessingWhisper {
     if (type == "whisper_small"){
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_SMALL;
     }
-    if (type == "whisper_medium" || type == "whisper_medium_with_virtual_memory"){
+    if (type == "whisper_medium"){
       // Please add com.apple.developer.kernel.increased-memory-limit for iOS
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_MEDIUM;
     }
-    if (type == "whisper_large_v3_turbo" || type == "whisper_large_v3_turbo_with_virtual_memory"){
+    if (type == "whisper_large_v3_turbo"){
       // Please add com.apple.developer.kernel.increased-memory-limit for iOS
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_LARGE_V3;
-    }
-    if (type == "whisper_large_v3_turbo_with_virtual_memory" || type == "whisper_medium_with_virtual_memory"){
-      virtualMemory = true;
     }
     if (virtualMemory){
       Directory path = await getTemporaryDirectory();
       AiliaModel.setTemporaryCachePath(path.path);
     }
-    _ailiaSpeechModel.init(intermediateCallback, messageCallback, finishCallback, onnx_encoder_file, onnx_decoder_file, vad_file, typeId, false, lang, true, env_id, virtualMemory);
-  }
+    String lang = "auto"; // auto or ja
+    _ailiaSpeechModel.open(onnx_encoder_file, onnx_decoder_file, vad_file, lang, typeId);
 
-  void send(List<double> pcm, int samplesPerSecond){
-    _ailiaSpeechModel.send(pcm, samplesPerSecond, 1);
-  }
+    String transcribeResult = "";
 
-  void terminate(){
-    _ailiaSpeechModel.terminate();
-  }
+    //_ailiaSpeechModel.setIntermediateCallback(_intermediateCallback);
 
-  void close(){
+    int startTime = DateTime.now().millisecondsSinceEpoch;
+
+    //transcribeResult = _transcribeOneShot(wav);
+    transcribeResult = _transcribeStep(wav);
+
+    int endTime = DateTime.now().millisecondsSinceEpoch;
+
+    transcribeResult = transcribeResult + "\nprocessing time : ${(endTime - startTime) / 1000} sec for ${(wav.channels[0].length / wav.samplesPerSecond)} sec audio.";
+
     _ailiaSpeechModel.close();
+
+    return transcribeResult;
   }
 
 }

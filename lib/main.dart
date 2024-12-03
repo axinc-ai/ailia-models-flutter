@@ -5,6 +5,7 @@ import 'package:flutter/services.dart'; //rootBundle
 import 'package:flutter/widgets.dart';
 import 'dart:async'; //Future
 import 'package:path_provider/path_provider.dart';
+import 'package:wav/wav.dart';
 import 'dart:io';
 import 'package:ailia/ailia_model.dart';
 import 'package:ailia/ailia_license.dart';
@@ -24,6 +25,7 @@ import 'dart:math' as math;
 import 'utils/download_model.dart';
 import 'image_classification/image_classification_sample.dart';
 import 'audio_processing/whisper.dart';
+import 'audio_processing/whisper_streaming.dart';
 import 'text_to_speech/text_to_speech.dart';
 import 'natural_language_processing/fugumt.dart';
 import 'natural_language_processing/multilingual_e5.dart';
@@ -109,10 +111,13 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     case "whisper_tiny":
     case "whisper_small":
     case "whisper_medium":
-    case "whisper_medium_with_virtual_memory":
     case "whisper_large_v3_turbo":
-    case "whisper_large_v3_turbo_with_virtual_memory":
-      _ailiaAudioProcessingWhisper(isSelectedItem!);
+      bool virtualMemory = isSelectedOptionItem.contains("virtual memory");
+      if(isSelectedOptionItem.startsWith("file")){
+        _ailiaAudioProcessingWhisper(isSelectedItem!, virtualMemory);
+      }else{
+        _ailiaAudioProcessingWhisperStreaming(isSelectedItem!, virtualMemory);
+      }
       break;
     case "multilingual-e5":
       _ailiaNaturalLanguageProcessingMultilingualE5();
@@ -333,6 +338,8 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   }
 
   AudioProcessingWhisper whisper = AudioProcessingWhisper();
+  AudioProcessingWhisperStreaming whisper_streaming = AudioProcessingWhisperStreaming();
+
   Stream<Uint8List>? stream = null;
   StreamSubscription? listener = null;
   String mic_volume = "";
@@ -354,7 +361,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   }
 
   void _finishCallback(){
-    whisper.close();
+    whisper_streaming.close();
     setState(() {
       predict_result = "Terminate success. You can run new whisper instance.";
     });
@@ -380,10 +387,28 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     });
 
     int sampleRate = 44100;
-    whisper.send(result, sampleRate);
+    whisper_streaming.send(result, sampleRate);
   }
 
-  void _ailiaAudioProcessingWhisper(String modelType) async{
+  void _ailiaAudioProcessingWhisper(String modelType, bool virtualMemory) async{
+    ByteData data = await rootBundle.load("assets/demo.wav");
+    final wav = await Wav.read(data.buffer.asUint8List());
+    AudioProcessingWhisper whisper = AudioProcessingWhisper();
+    List<String> modelList = whisper.getModelList(modelType);
+    _displayDownloadBegin();
+    downloadModelFromModelList(0, modelList, () async {
+      await _displayDownloadEnd();
+      File vad_file = File(await getModelPath(modelList[1]));
+      File onnx_encoder_file = File(await getModelPath(modelList[3]));
+      File onnx_decoder_file = File(await getModelPath(modelList[5]));
+      String text = await whisper.transcribe(wav, onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, virtualMemory);
+      setState(() {
+        predict_result = text;
+      });
+    });
+  }
+
+  void _ailiaAudioProcessingWhisperStreaming(String modelType, bool virtualMemory) async{
     List<String> modelList = whisper.getModelList(modelType);
     _displayDownloadBegin();
     downloadModelFromModelList(0, modelList, () async {
@@ -404,7 +429,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
       if (listener != null){
         listener!.cancel();
         listener = null;
-        whisper.terminate();
+        whisper_streaming.terminate();
         setState(() {
           predict_result = "Please wait terminate.";
         });
@@ -413,7 +438,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
       }
 
       String lang = "ja";
-      await whisper.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, lang, _intermediateCallback, _messageCallback, _finishCallback);
+      await whisper_streaming.open(onnx_encoder_file, onnx_decoder_file, vad_file, selectedEnvId, modelType, lang, virtualMemory, _intermediateCallback, _messageCallback, _finishCallback);
       if (Platform.isIOS){
         await Permission.microphone.request();
       }
@@ -509,10 +534,6 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
 
   void _incrementCounter() async {
     await _changeModel();
-
-    setState(() {
-      _counter++;
-    });
   }
 
   ui.Image? image = null;
@@ -529,6 +550,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   }
   
   String? isSelectedItem = 'resnet18';
+  String isSelectedOptionItem = '';
   List<AiliaEnvironment> envList = [];
   int selectedEnvId = 1;
   
@@ -544,9 +566,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     modelList.add('whisper_tiny');
     modelList.add('whisper_small');
     modelList.add('whisper_medium');
-    modelList.add('whisper_medium_with_virtual_memory');
     modelList.add('whisper_large_v3_turbo');
-    modelList.add('whisper_large_v3_turbo_with_virtual_memory');
     modelList.add('multilingual-e5');
     modelList.add('yolox');
     modelList.add('fugumt-en-ja');
@@ -555,6 +575,20 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     modelList.add('gpt-sovits-ja');
     modelList.add('gpt-sovits-en');
     modelList.add('gemma2');
+
+    List<String> optionList = [];
+    if (isSelectedItem!.startsWith("whisper")){
+      optionList.add('file');
+      optionList.add('mic');
+      optionList.add('file (virtual memory)');
+      optionList.add('mic (virtual memory)');
+    }else{
+      optionList.add('default');
+    }
+
+    if (!optionList.contains(isSelectedOptionItem)){
+      isSelectedOptionItem = optionList[0];
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -566,26 +600,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             const Text(
-              'You have pushed the inference button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            DropdownButton(
-              items:
-                envList.map((item) => 
-                  DropdownMenuItem(
-                    child: Text(item.name),
-                    value: item.id,
-                  )
-                ).toList(),
-              onChanged: (int? value) {
-                setState(() {
-                  selectedEnvId = value!;
-                });
-              },
-              value: selectedEnvId,
+              'Select AI model and push plus button for inference.',
             ),
             DropdownButton(
               items:
@@ -601,6 +616,36 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
                 });
               },
               value: isSelectedItem,
+            ),
+            DropdownButton(
+              items:
+                optionList.map((item) => 
+                  DropdownMenuItem(
+                    child: Text(item),
+                    value: item,
+                  )
+                ).toList(),
+              onChanged: (String? value) {
+                setState(() {
+                  isSelectedOptionItem = value!;
+                });
+              },
+              value: isSelectedOptionItem,
+            ),
+            DropdownButton(
+              items:
+                envList.map((item) => 
+                  DropdownMenuItem(
+                    child: Text(item.name),
+                    value: item.id,
+                  )
+                ).toList(),
+              onChanged: (int? value) {
+                setState(() {
+                  selectedEnvId = value!;
+                });
+              },
+              value: selectedEnvId,
             ),
             if (isImage) ...[ 
               new Container(
