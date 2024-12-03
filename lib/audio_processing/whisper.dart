@@ -1,3 +1,5 @@
+// Whisper Speech To Text Batch Processing
+
 import 'dart:io';
 import 'dart:math';
 
@@ -37,7 +39,7 @@ class AudioProcessingWhisper {
       modelList.add("whisper");
       modelList.add("decoder_medium_fix_kv_cache.opt3.onnx");
     }
-    if (type == "whisper_large_v3_turbo" || type == "whisper_large_v3_turbo_with_virtual_memory"){
+    if (type == "whisper_large_v3_turbo"){
       modelList.add("whisper");
       modelList.add("encoder_turbo.onnx");
       modelList.add("whisper");
@@ -102,8 +104,7 @@ class AudioProcessingWhisper {
       return transcribeResult;
   }
 
-  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type) async{
-    bool virtualMemory = false;
+  Future<String> transcribe(Wav wav, File onnx_encoder_file, File onnx_decoder_file, File vad_file, int env_id, String type, bool virtualMemory) async{
     _ailiaSpeechModel.create(false, false, env_id, virtualMemory:virtualMemory);
     int typeId = 0;
     if (type == "whisper_tiny"){
@@ -116,12 +117,9 @@ class AudioProcessingWhisper {
       // Please add com.apple.developer.kernel.increased-memory-limit for iOS
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_MEDIUM;
     }
-    if (type == "whisper_large_v3_turbo" || type == "whisper_large_v3_turbo_with_virtual_memory"){
+    if (type == "whisper_large_v3_turbo"){
       // Please add com.apple.developer.kernel.increased-memory-limit for iOS
       typeId = ailia_speech_dart.AILIA_SPEECH_MODEL_TYPE_WHISPER_MULTILINGUAL_LARGE_V3;
-    }
-    if (type == "whisper_large_v3_turbo_with_virtual_memory"){
-      virtualMemory = true;
     }
     if (virtualMemory){
       Directory path = await getTemporaryDirectory();
