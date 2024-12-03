@@ -1,3 +1,7 @@
+import 'dart:ui';
+
+import 'package:ailia/ailia.dart';
+import 'package:ailia/ailia_model.dart';
 import 'package:flutter/material.dart';
 
 // assets
@@ -22,6 +26,7 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 // ai models
+import 'image_segmentation/segment-anything-2/segment_image.dart';
 import 'utils/download_model.dart';
 import 'image_classification/image_classification_sample.dart';
 import 'audio_processing/whisper.dart';
@@ -105,6 +110,9 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     await AiliaLicense.checkAndDownloadLicense();
 
     switch (isSelectedItem){
+    case "sam2":
+      _ailiaImageSegmentationSam2();
+      break;
     case "resnet18":
       _ailiaImageClassificationResNet18();
       break;
@@ -302,6 +310,80 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
         predict_result = profileText;
       });
     });
+  }
+
+  void _ailiaImageSegmentationSam2() async {
+    // Load image
+    image = await loadImageFromAssets("assets/truck.jpg");
+    if (image == null) {
+      return;
+    }
+
+    setState(() {
+      // apply to ui (call build)
+      isImageloaded = true;
+    });
+
+    // Download onnx
+    _displayDownloadBegin();
+
+    const remotePath =
+        'https://storage.googleapis.com/ailia-models/segment-anything-2/';
+    const imageEncoderModel = 'image_encoder_hiera_t.onnx';
+    const promptEncoderModel = 'prompt_encoder_hiera_t.onnx';
+    const maskEncoderModel = 'mask_decoder_hiera_t.onnx';
+
+    final imageEncoderModelFile = await downloadModel(
+        '$remotePath$imageEncoderModel', imageEncoderModel, null, _displayDownloadProgress);
+    final promptEncoderModelFile = await downloadModel(
+        '$remotePath$promptEncoderModel', promptEncoderModel, null, _displayDownloadProgress);
+    final maskEncoderModelFile = await downloadModel(
+        '$remotePath$maskEncoderModel', maskEncoderModel, null, _displayDownloadProgress);
+
+    _displayDownloadEnd();
+
+    if (imageEncoderModelFile == null ||
+        promptEncoderModelFile == null ||
+        maskEncoderModelFile == null) {
+      return;
+    }
+
+    SegmentImage segmentImage = SegmentImage();
+    segmentImage.open(imageEncoderModelFile.path, promptEncoderModelFile.path,
+        maskEncoderModelFile.path, envId: selectedEnvId);
+    
+    // Load image data
+    DateTime time = DateTime.now();
+    final inputImage = await segmentImage.uiImageToImage(image!);
+    await segmentImage.setImage(inputImage);
+    print('setImage: ${DateTime.now().difference(time).inMilliseconds}ms');
+    time = DateTime.now();
+
+    // Generate mask image
+    final maskImage = segmentImage.run([img.Point(500, 375)]);
+    print('predict: ${DateTime.now().difference(time).inMilliseconds}ms');
+    time = DateTime.now();
+
+    if (maskImage == null) {
+      segmentImage.close();
+      return;
+    }
+
+    //final directory = await getApplicationDocumentsDirectory();
+    //final filePath = '${directory.path}/sam2.png';
+
+    img.Image result = await segmentImage.overlayMaskImage(inputImage, maskImage);
+    //img.encodePngFile(filePath, result);
+    //print('saveImage: ${DateTime.now().difference(time).inMilliseconds}ms');
+
+    final maskUiImage = await segmentImage.imageToUiImage(result);
+    setState(() {
+      //predict_result = 'Saved to $filePath';
+      predict_result = 'Generated masks.';
+      image = maskUiImage;
+    });
+
+    segmentImage.close();
   }
 
   void _ailiaImageClassificationResNet18(){
@@ -539,11 +621,18 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   ui.Image? image = null;
   bool isImageloaded = false;
 
-  Widget _buildImage() {
-    if (this.isImageloaded && image != null) {
-      return new CustomPaint(
-          painter: new ImageEditor(image: image!),
-        );
+  Widget _buildImage(BuildContext context) {
+    if (isImageloaded && image != null) {
+      double screenHeight = MediaQuery.of(context).size.height;
+      double height = screenHeight * 0.5;
+      double width = height * image!.width / image!.height;
+      return SizedBox(
+        width: width,
+        height: height,
+        child: CustomPaint(
+          painter: ImageEditor(image: image!),
+        ),
+      );
     } else {
       return new Center(child: new Text(''));
     }
@@ -556,13 +645,14 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
   
   @override
   Widget build(BuildContext context) {
-    bool isImage = isSelectedItem == 'resnet18' || isSelectedItem == 'yolox';
+    bool isImage = isSelectedItem == 'sam2' || isSelectedItem == 'resnet18' || isSelectedItem == 'yolox';
     if (envList.length == 0){
       envList = AiliaModel.getEnvironmentList();
     }
 
     List<String> modelList = [];
     modelList.add('resnet18');
+    modelList.add('sam2');
     modelList.add('whisper_tiny');
     modelList.add('whisper_small');
     modelList.add('whisper_medium');
@@ -651,7 +741,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
               new Container(
                 width: 224,
                 height: 224,
-                child: _buildImage(),
+                child: _buildImage(context),
               ),
             ],
             Text(
@@ -674,16 +764,16 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
 
 class ImageEditor extends CustomPainter {
   ImageEditor({
-    this.image,
+    required this.image,
   });
 
-  ui.Image? image;
+  ui.Image image;
 
   @override
   void paint(Canvas canvas, ui.Size size) {
-    if (image != null){
-      canvas.drawImage(image!, new Offset(0.0, 0.0), new Paint());
-    }
+    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final dst = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.drawImageRect(image, src, dst, Paint());
   }
 
   @override

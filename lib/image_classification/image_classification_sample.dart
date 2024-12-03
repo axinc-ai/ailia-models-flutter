@@ -54,4 +54,3 @@ String ailiaPredictSample(File onnxFile, ByteData data){
 
   return "Class : ${maxI} ${imagenet_category[maxI]} Confidence : ${maxProb}";
 }
-

@@ -1,5 +1,6 @@
 ﻿// download model
 
+import 'dart:async';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -27,17 +28,15 @@ Future<String> getModelPath(String path) async {
   return filePath;
 }
 
-void downloadModel(
-  String url,
-  String filename,
-  Function downloadCallback,
-  Function progressCallback
-) async {
+Future<File?> downloadModel(
+    String url, String filename, Function(File)? downloadCallback, Function? progressCallback) async {
   var filePath = await getModelPath(filename);
-  if (File(filePath).existsSync()) {
-    downloadCallback(File(filePath));
-    return;
+  final file = File(filePath);
+  if (file.existsSync()) {
+    downloadCallback?.call(file);
+    return file;
   }
+
   // create the folder if not exists.
   final Directory dir = Directory(p.dirname(filePath));
   if (!dir.existsSync()) {
@@ -57,6 +56,8 @@ void downloadModel(
   bool hasIOError = false;
   dynamic ioError;
 
+  final completer = Completer();
+
   response.asStream().listen((http.StreamedResponse r) {
     tempFileSink.done.catchError((e) {
       hasIOError = true;
@@ -65,7 +66,8 @@ void downloadModel(
 
     r.stream.listen(
       (List<int> chunk) {
-        final speed = 0;//getDownloadSpeed(bytes: downloaded, stopwatch: stopwatch);
+        final speed =
+            0; //getDownloadSpeed(bytes: downloaded, stopwatch: stopwatch);
 
         //progressCallback(filename, speed, chunk.length);
 
@@ -75,11 +77,12 @@ void downloadModel(
           return;
         }
         downloaded += chunk.length;
-        progressCallback(downloaded);
+        progressCallback?.call(downloaded);
       },
       onDone: () async {
         stopwatch.stop();
-        final speed = 0;//getDownloadSpeed(bytes: downloaded, stopwatch: stopwatch);
+        final speed =
+            0; //getDownloadSpeed(bytes: downloaded, stopwatch: stopwatch);
 
         await tempFileSink.close();
 
@@ -100,11 +103,17 @@ void downloadModel(
           throw Exception("$filename : ${e.toString()}");
         }
 
-        downloadCallback(File(filePath));
+        //progressCallback(filename, speed, 0);
+        final file = File(filePath);
+        downloadCallback?.call(file);
+        completer.complete(file);
       },
       onError: (_) {
         stopwatch.stop();
+        completer.complete(null);
       },
     );
   });
+
+  return await completer.future;
 }
