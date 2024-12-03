@@ -1,6 +1,11 @@
 import 'package:ailia/ailia_model.dart';
-import 'package:image/image.dart';
 import 'sam2_image_predictor.dart';
+
+import 'dart:ui' as ui;
+import 'package:image/image.dart' as img;
+
+import 'package:flutter/services.dart'; //rootBundle
+import 'dart:async'; //Future
 
 class SegmentImage {
   final Sam2ImagePredictor _predictor = Sam2ImagePredictor();
@@ -36,7 +41,7 @@ class SegmentImage {
   }
 
   Future<bool> setImage(
-    Image image,
+    img.Image image,
   ) async {
     _imageFeature = null;
     _highResFeatures = null;
@@ -51,7 +56,7 @@ class SegmentImage {
     return true;
   }
 
-  Image? run(List<Point> pointCoords) {
+  img.Image? run(List<img.Point> pointCoords) {
     if (_imageFeature == null || _highResFeatures == null) {
       return null;
     }
@@ -69,5 +74,58 @@ class SegmentImage {
       _promptEncoder,
       _maskDecoder,
     );
+  }
+
+  Future<img.Image> overlayMaskImage(
+      img.Image srcImage, img.Image maskImage) async {
+    final width = maskImage.width;
+    final height = maskImage.height;
+    if (width != maskImage.width || height != maskImage.height) {
+      return srcImage;
+    }
+
+    final mask = maskImage.data!.toUint8List();
+    final pixels = srcImage.data!.toUint8List();
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final index = (y * width + x) * 4;
+        final maskValue = mask[(y * width + x) * maskImage.numChannels + maskImage.numChannels - 1] ~/ 5;
+        pixels[index] = _clamp(pixels[index] + maskValue, 0, 255);
+      }
+    }
+
+    final image = img.Image.fromBytes(
+        width: width, height: height, numChannels: 4, bytes: pixels.buffer);
+    return image;
+  }
+
+  Future<img.Image> uiImageToImage(ui.Image image) async {
+    final inputData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+    return img.Image.fromBytes(
+      width: image.width,
+      height: image.height,
+      numChannels: 4,
+      bytes: inputData!.buffer,
+    );
+  }
+
+  Future<ui.Image> imageToUiImage(img.Image image) async {
+    final bytes = img.encodePng(image);
+    return _uint8ListToImage(bytes);
+  }
+
+  Future<ui.Image> _uint8ListToImage(Uint8List bytes) async {
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromList(bytes, completer.complete);
+    return completer.future;
+  }
+
+  int _clamp(int value, int min, int max) {
+    return value < min
+        ? min
+        : value > max
+            ? max
+            : value;
   }
 }

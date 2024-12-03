@@ -354,7 +354,7 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     
     // Load image data
     DateTime time = DateTime.now();
-    final inputImage = await _uiImageToImage(image!);
+    final inputImage = await segmentImage.uiImageToImage(image!);
     await segmentImage.setImage(inputImage);
     print('setImage: ${DateTime.now().difference(time).inMilliseconds}ms');
     time = DateTime.now();
@@ -364,77 +364,26 @@ class _AiliaModelsFlutterState extends State<AiliaModelsFlutter> {
     print('predict: ${DateTime.now().difference(time).inMilliseconds}ms');
     time = DateTime.now();
 
-    segmentImage.close();
-
     if (maskImage == null) {
+      segmentImage.close();
       return;
     }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/sam2.png';
+    //final directory = await getApplicationDocumentsDirectory();
+    //final filePath = '${directory.path}/sam2.png';
 
-    img.Image result = await _overlayMaskImage(inputImage, maskImage);
-    img.encodePngFile(filePath, result);
-    print('saveImage: ${DateTime.now().difference(time).inMilliseconds}ms');
+    img.Image result = await segmentImage.overlayMaskImage(inputImage, maskImage);
+    //img.encodePngFile(filePath, result);
+    //print('saveImage: ${DateTime.now().difference(time).inMilliseconds}ms');
 
-    final maskUiImage = await _imageToUiImage(result);
+    final maskUiImage = await segmentImage.imageToUiImage(result);
     setState(() {
-      predict_result = 'Saved to $filePath';
+      //predict_result = 'Saved to $filePath';
+      predict_result = 'Generated masks.';
       image = maskUiImage;
     });
-  }
 
-  Future<img.Image> _overlayMaskImage(
-      img.Image srcImage, img.Image maskImage) async {
-    final width = maskImage.width;
-    final height = maskImage.height;
-    if (width != maskImage.width || height != maskImage.height) {
-      return srcImage;
-    }
-
-    final mask = maskImage.data!.toUint8List();
-    final pixels = srcImage.data!.toUint8List();
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final index = (y * width + x) * 4;
-        final maskValue = mask[(y * width + x) * maskImage.numChannels + maskImage.numChannels - 1] ~/ 5;
-        pixels[index] = _clamp(pixels[index] + maskValue, 0, 255);
-      }
-    }
-
-    final image = img.Image.fromBytes(
-        width: width, height: height, numChannels: 4, bytes: pixels.buffer);
-    return image;
-  }
-
-  Future<img.Image> _uiImageToImage(ui.Image image) async {
-    final inputData = await image.toByteData(format: ImageByteFormat.rawRgba);
-
-    return img.Image.fromBytes(
-      width: image.width,
-      height: image.height,
-      numChannels: 4,
-      bytes: inputData!.buffer,
-    );
-  }
-
-  Future<ui.Image> _imageToUiImage(img.Image image) async {
-    final bytes = img.encodePng(image);
-    return _uint8ListToImage(bytes);
-  }
-
-  Future<ui.Image> _uint8ListToImage(Uint8List bytes) async {
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromList(bytes, completer.complete);
-    return completer.future;
-  }
-
-  int _clamp(int value, int min, int max) {
-    return value < min
-        ? min
-        : value > max
-            ? max
-            : value;
+    segmentImage.close();
   }
 
   void _ailiaImageClassificationResNet18(){
