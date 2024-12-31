@@ -37,7 +37,7 @@ Future<AiliaTensor?> imageToAiliaTensor(img.Image image,
   return inputTensor;
 }
 
-img.Image ailiaTensorToImage(AiliaTensor input) {
+img.Image ailiaTensorToImage(AiliaTensor input, {bool reverse = false}) {
   final width = input.shape.x;
   final height = input.shape.y;
   final numChannels = input.shape.z;
@@ -49,6 +49,9 @@ img.Image ailiaTensorToImage(AiliaTensor input) {
     for (int x = 0; x < width; x++) {
       final index = (y * width + x);
       pixels[index * 4 + 3] = (data[index * numChannels] * 255).toInt();
+      if (reverse) {
+        pixels[index * 4 + 3] = 255 - pixels[index * 4 + 3];
+      }
     }
   }
 

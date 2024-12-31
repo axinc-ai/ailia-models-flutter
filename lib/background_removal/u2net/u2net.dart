@@ -50,7 +50,7 @@ class U2Net {
     List<AiliaTensor> outputs = _model.run([_inputTensor!]);
     AiliaTensor mask = outputs[0];
 
-    final maskImage = ailiaTensorToImage(mask);
+    final maskImage = ailiaTensorToImage(mask, reverse: true);
     return img.copyResize(
       maskImage,
       width: _inputWidth,
