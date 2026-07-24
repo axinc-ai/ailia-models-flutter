@@ -7,6 +7,7 @@ import 'package:image/image.dart' as img;
 
 import '../../backend_state.dart';
 import '../../diffusion/sdxl/sdxl.dart';
+import '../../diffusion/sdxl/sdxl_worker.dart';
 import '../../model_catalog.dart';
 import '../../utils/download_model.dart';
 import '../../utils/image_util.dart';
@@ -59,9 +60,11 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
   // a Stop button that cancels at the next sampling step boundary.
   bool _generating = false;
 
-  // Kept open across Runs so a repeated Run skips the multi-GB model
-  // load. Released when leaving the page or changing the backend.
-  StableDiffusionXL? _sdxl;
+  // The generation runs on a background isolate so the UI stays
+  // responsive during the multi-second inference calls. The models
+  // stay resident on the worker across Runs; released when leaving
+  // the page or changing the backend.
+  SdxlWorker? _worker;
 
   @override
   void initState() {
@@ -89,8 +92,8 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
   }
 
   void _releaseModel() {
-    _sdxl?.close();
-    _sdxl = null;
+    _worker?.dispose();
+    _worker = null;
   }
 
   /// Shows the bundled img2img sample image (img2img mode only; in
@@ -162,16 +165,15 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
 
   Future<void> _onStatus(String status) async {
     _session.setStatus(status);
-    // Let the status render before the next call blocks the UI isolate.
-    await Future.delayed(const Duration(milliseconds: 50));
   }
 
   /// Per-step progress: the status line, the progress bar, and (when
   /// preview is enabled) the current denoised estimate as the image.
   Future<void> _onStep(
-      int completedSteps, int totalSteps, img.Image? preview) async {
+      int completedSteps, int totalSteps, SdxlImageData? preview) async {
     if (preview != null) {
-      final previewImage = await imageToUiImage(preview);
+      final previewImage =
+          await rgbaBytesToUiImage(preview.rgba, preview.width, preview.height);
       safeSetState(() {
         _image = previewImage;
       });
@@ -181,8 +183,6 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
         : 'Sampling finished';
     _session.downloadProgress = completedSteps / totalSteps;
     _session.notifyListeners();
-    // Let the progress render before the next step blocks the UI isolate.
-    await Future.delayed(const Duration(milliseconds: 50));
   }
 
   Future<void> _run() => _session.run(() async {
@@ -207,21 +207,21 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
           return;
         }
 
-        if (_sdxl == null) {
-          final sdxl = StableDiffusionXL();
-          sdxl.open(await getModelPath(''), envId: selectedEnvId);
-          _sdxl = sdxl;
+        if (_worker == null) {
+          final worker = SdxlWorker();
+          await worker.start(await getModelPath(''), envId: selectedEnvId);
+          _worker = worker;
         }
-        final sdxl = _sdxl!;
+        final worker = _worker!;
         safeSetState(() {
           _generating = true;
         });
         try {
           final startTime = DateTime.now().millisecondsSinceEpoch;
-          img.Image result;
+          SdxlImageData result;
           if (_img2img) {
             final input = await _loadInputImage();
-            result = await sdxl.img2img(
+            result = await worker.img2img(
               image: input,
               prompt: prompt,
               steps: steps,
@@ -232,7 +232,7 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
               onStatus: _onStatus,
             );
           } else {
-            result = await sdxl.txt2img(
+            result = await worker.txt2img(
               prompt: prompt,
               width: _resolution,
               height: _resolution,
@@ -245,7 +245,8 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
           }
           final endTime = DateTime.now().millisecondsSinceEpoch;
 
-          final resultImage = await imageToUiImage(result);
+          final resultImage =
+              await rgbaBytesToUiImage(result.rgba, result.width, result.height);
           safeSetState(() {
             _image = resultImage;
           });
@@ -271,7 +272,7 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
   /// Stop button handler: aborts at the next sampling step boundary
   /// (the current UNet step cannot be interrupted).
   void _cancel() {
-    _sdxl?.cancel();
+    _worker?.cancel();
     _session.setStatus('Cancelling after the current step...');
   }
 

@@ -20,6 +20,7 @@ import 'package:ailia/ailia_license.dart';
 import 'package:ailia/ailia_model.dart';
 import 'package:ailia_llm/ailia_llm_model.dart';
 import 'package:ailia_models_flutter/diffusion/sdxl/sdxl.dart';
+import 'package:ailia_models_flutter/diffusion/sdxl/sdxl_worker.dart';
 import 'package:ailia_models_flutter/large_language_model/large_language_model.dart';
 import 'package:image/image.dart' as img;
 
@@ -114,11 +115,13 @@ void main() {
 
     final steps =
         int.tryParse(Platform.environment['AILIA_SDXL_TEST_STEPS'] ?? '') ?? 2;
-    final sdxl = StableDiffusionXL(seed: 42);
-    sdxl.open(_modelCachePath(''));
+    // The worker runs the pipeline on a background isolate, as the
+    // demo page does.
+    final worker = SdxlWorker();
+    await worker.start(_modelCachePath(''));
     try {
       final stopwatch = Stopwatch()..start();
-      final image = await sdxl.txt2img(
+      final result = await worker.txt2img(
         prompt:
             'Astronaut in a jungle, cold color palette, muted colors, detailed, 8k',
         width: 512,
@@ -129,6 +132,7 @@ void main() {
           print('sdxl [${stopwatch.elapsed}]: $status');
         },
       );
+      final image = result.toImage();
       expect(image.width, 512);
       expect(image.height, 512);
 
@@ -150,7 +154,7 @@ void main() {
       // A second run must reuse the resident models (no reload) and
       // exercise the per-step VAE preview decode.
       int previews = 0;
-      final second = await sdxl.txt2img(
+      final second = await worker.txt2img(
         prompt: 'A cat sitting on a chair, watercolor',
         width: 512,
         height: 512,
@@ -176,21 +180,21 @@ void main() {
       // cancel() during sampling must abort with
       // SdxlCancelledException and leave the models usable.
       await expectLater(
-        sdxl.txt2img(
+        worker.txt2img(
           prompt: 'A dog',
           width: 512,
           height: 512,
           steps: 5,
           onStep: (completedSteps, totalSteps, preview) async {
             if (completedSteps == 1) {
-              sdxl.cancel();
+              worker.cancel();
             }
           },
           onStatus: (status) async {},
         ),
         throwsA(isA<SdxlCancelledException>()),
       );
-      final third = await sdxl.txt2img(
+      final third = await worker.txt2img(
         prompt: 'A dog',
         width: 512,
         height: 512,
@@ -199,7 +203,7 @@ void main() {
       );
       expect(third.width, 512);
     } finally {
-      sdxl.close();
+      worker.dispose();
     }
   }, timeout: const Timeout(Duration(minutes: 60)));
 
