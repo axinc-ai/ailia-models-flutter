@@ -172,6 +172,32 @@ void main() {
       );
       expect(second.width, 512);
       expect(previews, 2);
+
+      // cancel() during sampling must abort with
+      // SdxlCancelledException and leave the models usable.
+      await expectLater(
+        sdxl.txt2img(
+          prompt: 'A dog',
+          width: 512,
+          height: 512,
+          steps: 5,
+          onStep: (completedSteps, totalSteps, preview) async {
+            if (completedSteps == 1) {
+              sdxl.cancel();
+            }
+          },
+          onStatus: (status) async {},
+        ),
+        throwsA(isA<SdxlCancelledException>()),
+      );
+      final third = await sdxl.txt2img(
+        prompt: 'A dog',
+        width: 512,
+        height: 512,
+        steps: 1,
+        onStatus: (status) async {},
+      );
+      expect(third.width, 512);
     } finally {
       sdxl.close();
     }

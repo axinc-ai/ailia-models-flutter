@@ -17,6 +17,13 @@ typedef SdxlStatusCallback = Future<void> Function(String status);
 typedef SdxlStepCallback = Future<void> Function(
     int completedSteps, int totalSteps, img.Image? preview);
 
+/// Thrown by txt2img / img2img when [StableDiffusionXL.cancel] is
+/// called during generation. The models stay open and usable.
+class SdxlCancelledException implements Exception {
+  @override
+  String toString() => 'Generation cancelled';
+}
+
 /// Stable Diffusion XL base 1.0 (text2img / img2img), ported from
 /// ailia-models/diffusion/sdxl.
 ///
@@ -86,6 +93,7 @@ class StableDiffusionXL {
   String _modelDir = '';
   int _envId = 0;
   bool _available = false;
+  bool _cancelRequested = false;
 
   AiliaTokenizerModel? _tokenizer; // CLIP ViT-L
   AiliaTokenizerModel? _tokenizer2; // OpenCLIP ViT-bigG
@@ -222,6 +230,22 @@ class StableDiffusionXL {
     if (!_available) {
       throw Exception('StableDiffusionXL is not opened');
     }
+    _cancelRequested = false;
+  }
+
+  /// Aborts the running generation at the next stage or sampling step
+  /// boundary (a blocking inference call cannot be interrupted). The
+  /// aborted call throws [SdxlCancelledException]; the models stay
+  /// resident, so the next run starts immediately.
+  void cancel() {
+    _cancelRequested = true;
+  }
+
+  void _throwIfCancelled() {
+    if (_cancelRequested) {
+      _cancelRequested = false;
+      throw SdxlCancelledException();
+    }
   }
 
   AiliaModel _openNet(String file) {
@@ -300,6 +324,7 @@ class StableDiffusionXL {
       int width, SdxlStatusCallback onStatus) async {
     // CLIP ViT-L/14: penultimate hidden state (77, 768)
     await onStatus('Encoding prompt (CLIP ViT-L)...');
+    _throwIfCancelled();
     final inputIds = _tokenize(_tokenizer!, prompt, _tokenEos);
     final clipLHidden = _clipL().run([
       _tensor(inputIds, [1, _maxTokens])
@@ -309,6 +334,7 @@ class StableDiffusionXL {
     // OpenCLIP ViT-bigG/14: penultimate hidden state (77, 1280) +
     // pooled (1280)
     await onStatus('Encoding prompt (OpenCLIP bigG)...');
+    _throwIfCancelled();
     final inputIds2 = _tokenize(_tokenizer2!, prompt, _tokenPadBigG);
     final openClipOutput = _openClip().run([
       _tensor(inputIds2, [1, _maxTokens])
@@ -440,6 +466,7 @@ class StableDiffusionXL {
     final totalSteps = sigmas.length - 1;
     await onStep?.call(0, totalSteps, null);
     for (int step = 0; step < totalSteps; step++) {
+      _throwIfCancelled();
       final sigma = sigmas[step];
       final denoised =
           _denoise(unet, x, sigma, cond, guidanceScale, latentHeight,
@@ -451,6 +478,10 @@ class StableDiffusionXL {
         x[i] += dt * (x[i] - denoised[i]) / sigma;
       }
 
+      // A cancel that arrived during the UNet run takes effect before
+      // the preview decode and progress report.
+      _throwIfCancelled();
+
       // The preview decodes the denoised (x0) estimate, which is what
       // the final latent converges to, rather than the noisy x.
       final preview = previewEachStep
@@ -458,6 +489,7 @@ class StableDiffusionXL {
           : null;
       await onStep?.call(step + 1, totalSteps, preview);
     }
+    _throwIfCancelled();
     return x;
   }
 
@@ -519,6 +551,7 @@ class StableDiffusionXL {
   Future<Float32List> _encodeImage(
       img.Image image, SdxlStatusCallback onStatus) async {
     await onStatus('Encoding input image (VAE)...');
+    _throwIfCancelled();
     final width = image.width;
     final height = image.height;
     final rgb =

@@ -55,6 +55,10 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
   bool _useCamera = false;
   ui.Image? _image;
 
+  // True while a generation is in flight; switches the Run button to
+  // a Stop button that cancels at the next sampling step boundary.
+  bool _generating = false;
+
   // Kept open across Runs so a repeated Run skips the multi-GB model
   // load. Released when leaving the page or changing the backend.
   StableDiffusionXL? _sdxl;
@@ -209,6 +213,9 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
           _sdxl = sdxl;
         }
         final sdxl = _sdxl!;
+        safeSetState(() {
+          _generating = true;
+        });
         try {
           final startTime = DateTime.now().millisecondsSinceEpoch;
           img.Image result;
@@ -245,13 +252,28 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
           _session.clearStatus();
           _session.showResult(
               'processing time : ${endTime - startTime} ms ($steps steps)');
+        } on SdxlCancelledException {
+          // A user cancel is not an error; the models stay resident.
+          _session.clearStatus();
+          _session.showResult('Generation cancelled.');
         } catch (e) {
           // A failed run may leave a model in a bad state; reopen on
           // the next Run.
           _releaseModel();
           rethrow;
+        } finally {
+          safeSetState(() {
+            _generating = false;
+          });
         }
       });
+
+  /// Stop button handler: aborts at the next sampling step boundary
+  /// (the current UNet step cannot be interrupted).
+  void _cancel() {
+    _sdxl?.cancel();
+    _session.setStatus('Cancelling after the current step...');
+  }
 
   Widget _buildModeSelector() {
     return SegmentedButton<bool>(
@@ -429,7 +451,11 @@ class _DiffusionDemoPageState extends State<DiffusionDemoPage>
         if (_img2img) _buildStrengthSlider(),
         _buildPreviewSwitch(),
         _buildImage(context),
-        DemoRunButton(session: _session, onPressed: _run),
+        DemoRunButton(
+          session: _session,
+          stopMode: _generating,
+          onPressed: _generating ? _cancel : _run,
+        ),
       ],
     );
   }
