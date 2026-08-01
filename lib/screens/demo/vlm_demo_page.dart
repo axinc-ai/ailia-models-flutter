@@ -39,6 +39,16 @@ class _VlmDemoPageState extends State<VlmDemoPage> with SafeSetStateMixin {
   void initState() {
     super.initState();
     _loadSampleImage();
+    // Automation hook: AILIA_AUTO_RUN=1 presses Run once the page is up
+    // and reports the outcome on stdout (used together with
+    // AILIA_OPEN_MODEL and AILIA_SCREENSHOT).
+    if (Platform.environment['AILIA_AUTO_RUN'] == '1') {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _run();
+        debugPrint('AILIA_AUTO_RUN result: ${_session.result}');
+        debugPrint('AILIA_AUTO_RUN error: ${_session.errorText}');
+      });
+    }
   }
 
   @override
