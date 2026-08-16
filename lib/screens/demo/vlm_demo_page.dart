@@ -26,6 +26,7 @@ class VlmDemoPage extends StatefulWidget {
 class _VlmDemoPageState extends State<VlmDemoPage> with SafeSetStateMixin {
   final DemoSession _session = DemoSession();
   final CameraInput _camera = CameraInput();
+  final MultimodalLargeLanguageModel _vlm = MultimodalLargeLanguageModel();
 
   // Query for the multimodal (image + text) LLM demo.
   final TextEditingController _queryController =
@@ -38,12 +39,24 @@ class _VlmDemoPageState extends State<VlmDemoPage> with SafeSetStateMixin {
   void initState() {
     super.initState();
     _loadSampleImage();
+    // Automation hook: AILIA_AUTO_RUN=1 presses Run once the page is up
+    // and reports the outcome on stdout (used together with
+    // AILIA_OPEN_MODEL and AILIA_SCREENSHOT).
+    if (Platform.environment['AILIA_AUTO_RUN'] == '1') {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _run();
+        debugPrint('AILIA_AUTO_RUN result: ${_session.result}');
+        debugPrint('AILIA_AUTO_RUN error: ${_session.errorText}');
+      });
+    }
   }
 
   @override
   void dispose() {
     _queryController.dispose();
     _camera.dispose();
+    // Stop the inference isolate if a run is still in flight.
+    _vlm.cancel();
     _session.dispose();
     super.dispose();
   }
@@ -87,12 +100,11 @@ class _VlmDemoPageState extends State<VlmDemoPage> with SafeSetStateMixin {
         } else {
           _camera.clearCapture();
         }
-        await _runGemma3Multimodal();
+        await _runMultimodal();
       });
 
-  Future<void> _runGemma3Multimodal() async {
-    MultimodalLargeLanguageModel multimodalLLM = MultimodalLargeLanguageModel();
-    List<String> modelList = multimodalLLM.getModelList();
+  Future<void> _runMultimodal() async {
+    List<String> modelList = _vlm.getModelList(widget.model.id);
     if (!await _session.downloadModelList(modelList)) {
       return;
     }
@@ -122,20 +134,21 @@ class _VlmDemoPageState extends State<VlmDemoPage> with SafeSetStateMixin {
       _session.clearStatus();
       await Future.delayed(const Duration(milliseconds: 100));
 
-      await _performInference(multimodalLLM, imagePath);
+      await _performInference(imagePath);
     } catch (e) {
       _session.showError(e);
     }
   }
 
-  Future<void> _performInference(
-      MultimodalLargeLanguageModel multimodalLLM, String imagePath) async {
+  Future<void> _performInference(String imagePath) async {
     try {
       _session.showResult("Loading model with selected backend...");
 
-      File modelFile = File(await getModelPath("gemma-3-4b-it-Q4_K_M.gguf"));
-      File mmprojFile =
-          File(await getModelPath("gemma-3-4b-it-GGUF_mmproj-model-f16.gguf"));
+      final type = widget.model.id;
+      File modelFile = File(
+          await getModelPath(MultimodalLargeLanguageModel.modelFileName(type)));
+      File mmprojFile = File(await getModelPath(
+          MultimodalLargeLanguageModel.mmprojFileName(type)));
 
       String inputText = _queryController.text.trim();
 
@@ -144,17 +157,33 @@ class _VlmDemoPageState extends State<VlmDemoPage> with SafeSetStateMixin {
       // ailia LLM has its own backend list; use the LLM selection.
       String selectedBackend = BackendState.instance.selectedLlmBackend.value;
 
-      multimodalLLM.openWithBackendName(modelFile, mmprojFile, selectedBackend);
-      multimodalLLM.setSystemPrompt("画像を2-3文で簡潔に説明してください。");
-      String outputText = multimodalLLM.chatWithImage(inputText, imagePath);
+      // Generation runs in an isolate; stream tokens into the result
+      // panel, repainting at most once per frame.
+      final reply = StringBuffer();
+      int lastPaintMs = 0;
+      String outputText = await _vlm.chatWithImage(
+        model: modelFile,
+        mmproj: mmprojFile,
+        backend: selectedBackend,
+        nCtx: MultimodalLargeLanguageModel.contextSize(type),
+        systemPrompt: "画像を2-3文で簡潔に説明してください。",
+        inputText: inputText,
+        imagePath: imagePath,
+        onDelta: (delta) {
+          reply.write(delta);
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          if (nowMs - lastPaintMs >= 33) {
+            lastPaintMs = nowMs;
+            _session.showResult(reply.toString());
+          }
+        },
+      );
 
       int endTime = DateTime.now().millisecondsSinceEpoch;
       String profileText =
           "processing time : ${endTime - startTime} ms";
 
       _session.showResult("$outputText\n$profileText");
-
-      multimodalLLM.close();
     } catch (e) {
       _session.showError("Inference Error: $e");
     }

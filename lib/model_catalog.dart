@@ -89,6 +89,8 @@ const List<ModelInfo> modelCatalog = [
       'gemma4-e2b', 'Gemma 4 E2B', 'Large Language Model', ModelInputKind.text),
   ModelInfo('gemma3-multimodal', 'Gemma 3 4B Multimodal',
       'Large Language Model', ModelInputKind.imageText),
+  ModelInfo('gemma4-e2b-multimodal', 'Gemma 4 E2B Multimodal',
+      'Large Language Model', ModelInputKind.imageText),
 ];
 
 /// Remote (folder, filename) pairs for the image demos, shared by the
